@@ -1,117 +1,25 @@
+# Tap2iD-SDK-Windows
+
 ![Template 5 (1)](https://github.com/user-attachments/assets/470b82b9-cc72-4ce9-9343-da1bede1bc58)
 
-**Tap2iD Verifier SDK sample for Windows**
+**Credence ID's Tap2iD SDK** is a crucial component of the Verify with Credence (VwC) platform, designed for mobile ID verification. It adheres to the ISO/IEC 18013-5:2021 standard, which establishes an interoperable digital representation for mobile-based credentials, such as mobile driver's licenses (mDL). The SDK is available for integration with existing mobile apps on Android, iOS, and Windows desktop platforms. The Tap2iD SDK combines the functionalities offered by various digital identity libraries to provide mDL verification capabilities to third-party apps.
 
-June 2024
+---
 
-##
+## Pre-requisites
 
-## Overview
+### Register on VwC
+- Follow the [Step-by-Step Instruction to Register on CredenceID VwC Portal](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Register-on-Verify-with-Credence-Portal) to get started.
 
-The Tap2iD Verifier SDK for Windows provides a set of APIs for integrating mobile driver license functionalities into your applications. The SDK is based on the ISO 18013-5 standard. This document serves as a comprehensive guide for developers on using the SDK, including details about the available methods, request/response formats, and example usage.
+### Generate SDK License Key
+- Use the [Step-by-Step Instructions to Generate SDK License Key](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Generate-License-Key) to obtain the required license for SDK integration.
 
-## Features
+### Documentation
+- [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Windows/releases)
+- [API Documentation](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Tap2iD-SDK-API-Documentation)
+- [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Integrate-Tap2iD-Windows-SDK)
 
-- Parse and verify mdocs (mDLs), with verification of MSO-validity, doc type, certificate chains, tamper check and issuer signatures.
-- Seamless Integration: The SDK can be integrated into existing apps or systems, providing a smooth user experience without requiring additional steps
-- ISO Compliance: Adheres to international standards for digital identity verification, ensuring compliance with regulatory requirements
-- Adaptable: Suitable for businesses of all sizes, from small enterprises to large corporations, and can handle varying volumes of verification requests
+---
+© 2024 Credence ID LLC. All rights reserved.
 
-## Prerequisites
-
-### Supported Platforms and OS
-
-- Windows 10 or higher
-
-### Software Requirements / Necessary Libraries
-
-- Visual Studio 2019 or later
-- WinUI 3 application
-
-### Hardware Requirements
-
-- Bluetooth Low Energy support for Windows Bluetooth
-- Webcam on PC OR an external 2D Barcode scanner to read QR code
-
-### Skills Required
-
-- WinUI 3 knowledge
-- C#
-
-## Getting Started with SDK Integration
-
-### Installation
-
-1. Download the mDL SDK from the official website. It is provided as Tap2idVerifySDK Package
-2. Add the NuGet Package to your WinUI 3 project:
-
-
-### Authentication (Work In Progress)
-
-To use the mDL SDK, you need an API key. Contact support to get your API key.
-
-_This feature is under active development and will be a part of future releases.._
-
-## API
-
-### Instantiate SDK
-A factory method is available to instantiate the class:
-```
-private IVerifyMdoc tap2idVerifier;
-
-
-tap2idVerifier = VerifyMdocFactory.CreateVerifyMdoc();
-
-```
-
-### Initialize SDK
-
-This method is called to initialize the Tap2iD SDK. It's mandatory to call this api before calling any other api and this API should be called before calling any other api.
-```
-
-tap2idVerifier.InitTap2iDAsync(new CoreSdkConfig { ApiKey = "MyApiKey" });
-
-```
-
-### Define delegate and Verify Mdoc
-
-
-```
-var delegateVerifyState = new DelegateVerifyState
-{
-	OnVerifyStateCallback = OnVerifyState,
-};
-
-var mDocConfig = new MdocConfig
-{
-	deviceEngagementString = "mdoc:xxxxxxx";
-}
-
-var result = await tap2idVerifier.verifyMdocAsync(mDocConfig,delegateVerifyState);
-
-if (tap2IdResult.ResultError == Tap2iDResultError.OK)
-{
-	Console.WriteLine($"name : {result.getIdentity().getFamilyName}. IsOver21 : {result.getIdentity().getIsAgeOver21()}");
-}
-else
-{
-	Console.WriteLine($"Error description: {result.getResultError().getDescription()}. Error code: {result.getResultError().getErrorCode()}");
-}
-
-//Define callback
-private void OnVeryfyState(VerifyState verifyState)
-{
-
-	Console.Writeline($"Current State : {verifyState.ToString()}");
-
-}
-```
-
-## Support
-
-For further assistance, contact our support team at [support@credenceid.com](mailto:support@credenceid.com)
-
-## Licensing and Legal Information
-
-- License: The SDK s license and any legal considerations.
-- Terms of Use: Terms and conditions for using the SDK.
+This Sample App is provided by Credence ID for demonstration purposes only and is intended to showcase the usage of the Tap2iD SDK. This Sample App, including its code, assets, and associated materials, is the exclusive property of Credence ID.
