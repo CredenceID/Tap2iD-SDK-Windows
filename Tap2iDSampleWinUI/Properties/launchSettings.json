@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Tap2iDSampleWinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Tap2iDSampleWinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
