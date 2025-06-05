@@ -43,9 +43,12 @@
   <ItemGroup>
 
 
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.4.0" />
+
+
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
-    <PackageReference Include="Tap2iDSdk" Version="1.0.0" />
+    <PackageReference Include="Tap2iDSdk" Version="1.1.0" />
 
     <PackageReference Include="ZXing.Net" Version="0.16.9" />
     <Manifest Include="$(ApplicationManifest)" />

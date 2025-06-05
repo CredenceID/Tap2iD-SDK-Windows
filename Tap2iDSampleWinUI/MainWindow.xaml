@@ -21,56 +21,44 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid
-            Margin="20,0,20,10"
-            >
-            <Grid.Resources>
-                <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-            </Grid.Resources>
-            <!-- Define Rows for Each Section -->
-            <Grid.RowDefinitions>
-                <!-- Control & Results Section -->
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <!-- Control Section -->
+            <ColumnDefinition Width="Auto"/>
+            <!-- Results Section -->
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
 
-            <Grid.ColumnDefinitions>
-                <!-- Control Section -->
-                <ColumnDefinition Width="Auto"/>
-                <!-- Results Section -->
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Top StackPanel for License Validation, Camera Selection, Scan QR Code Button, and Clear Button -->
-            <Grid 
+        <!-- Top StackPanel for License Validation, Camera Selection, Scan QR Code Button, and Clear Button -->
+        <Grid 
                 Grid.Row="0" Grid.Column="0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Margin="0,20,0,0"
+                Margin="10,10,0,0"
                 BorderBrush="#1E534B"
                 BorderThickness="2"
                 CornerRadius="9"
                 Background="#D1E4E3">
-                <!-- Define Rows and Columns for Alignment -->
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <!-- Define Rows and Columns for Alignment -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Grid.Column="0">
-                    <Grid.ColumnDefinitions>
-                        <!-- Control Section -->
-                        <ColumnDefinition Width="Auto"/>
-                        <!-- Results Section -->
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <!-- Section Title -->
-                    <TextBlock
+            <Grid Grid.Row="0" Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <!-- Control Section -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Results Section -->
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <!-- Section Title -->
+                <TextBlock
                     Grid.Row="0" Grid.Column="0" 
                     Text="Tap2iD SDK Windows"
                     FontSize="32"
@@ -78,7 +66,7 @@
                     FontWeight="Bold"
                     Margin="20,10,0,10"
                     />
-                    <Grid 
+                <Grid 
                         Grid.Row="0" Grid.Column="3"
                         BorderBrush="#1E534B"
                         BorderThickness="0"
@@ -88,7 +76,7 @@
                         Margin="20,10,50,10"
                         Background="#B3B3B3">
 
-                        <TextBlock
+                    <TextBlock
                         Grid.Row="0" 
                         Grid.Column="3"
                         VerticalAlignment="Center"
@@ -99,11 +87,11 @@
                         FontFamily="Arial"
                         Margin="10,5,10,5"
                         Visibility="{Binding Text, ElementName=profileTextBlock, Converter={StaticResource StringToVisibilityConverter}}" />
-                    </Grid>
                 </Grid>
+            </Grid>
 
-                <Grid Grid.Row="1" Grid.Column="0" >
-                    <TextBlock
+            <Grid Grid.Row="1" Grid.Column="0" >
+                <TextBlock
                     Grid.Row="0" 
                     Grid.Column="0" 
                     x:Name="VersionTextBlock" 
@@ -112,31 +100,32 @@
                     FontFamily="Arial"
                     Margin="20,0,0,10"
                     />
-                </Grid>
+            </Grid>
 
-                <Grid Grid.Row="2" Grid.Column="0" >
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="400"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Row="2" Grid.Column="0" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="400"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- License Key Initialization -->
-                    <TextBox 
+                <!-- License Key Initialization -->
+                <TextBox 
                         Grid.Row="2" 
                         Grid.Column="0" 
                         x:Name="InputLicenseTextBox" 
                         Width="380"
                         BorderBrush="#1E534B"
-                        PlaceholderText="Enter License Key" 
+                        PlaceholderText="Enter License Key or use License.txt file in Documents\Tap2iD folder" 
                         VerticalContentAlignment="center"
                         FontSize="16"
                         CornerRadius="9"
                         SelectionHighlightColor="#1E534B"
                         Background="White"
-                        Margin="20,0,0,10"/>
+                        Margin="20,0,0,10"
+                        TextWrapping="Wrap"/>
 
-                    <Button 
+                <Button 
                         Grid.Row="2" 
                         Grid.Column="1"
                         x:Name="VerifyLicenseAndInitButton" 
@@ -151,7 +140,7 @@
                         VerticalAlignment="Center"
                         Margin="10,0,0,10" />
 
-                    <Button 
+                <Button 
                         Grid.Row="2" 
                         Grid.Column="2"
                         x:Name="Clear" 
@@ -167,11 +156,11 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Margin="10, 0, 10,10" />
-                </Grid>
+            </Grid>
 
 
-                <Grid Grid.Row="3" Grid.Column="0" >
-                    <TextBlock
+            <Grid Grid.Row="3" Grid.Column="0" >
+                <TextBlock
                     Grid.Row="0" 
                     Grid.Column="0" 
                     Text="Select Device Engagement Method"
@@ -179,20 +168,20 @@
                     FontFamily="Arial"
                     Margin="20,0,0,10"
                     />
-                </Grid>
+            </Grid>
 
-                <Grid Grid.Row="4" 
+            <Grid Grid.Row="4" 
                       HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <Button 
+                <Button 
                         Grid.Row="0" 
                         Grid.Column="0"
                         x:Name="ActivateNfcButton" 
@@ -209,7 +198,7 @@
                         VerticalAlignment="Center"
                         Margin="10,0,1,10" />
 
-                    <Button 
+                <Button 
                         Grid.Row="0" 
                         Grid.Column="1"
                         x:Name="ActivateScanQrCodeButton" 
@@ -226,23 +215,23 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Margin="1, 0, 10 ,10" >
-                        
-                    </Button>
 
-                </Grid>
+                </Button>
 
-                <Grid Grid.Row="5"
+            </Grid>
+
+            <Grid Grid.Row="5"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Top"
                     Height="4"
                     Margin="0,0,0,0">
 
-                    <Rectangle Fill="#1E534B" Height="1"/>
+                <Rectangle Fill="#1E534B" Height="1"/>
 
-                </Grid>
+            </Grid>
 
-                <Grid Grid.Row="6" Grid.Column="0" >
-                    <TextBlock
+            <Grid Grid.Row="6" Grid.Column="0" >
+                <TextBlock
                     Grid.Row="0" 
                     Grid.Column="0"     
                     x:Name="DeviceEngagementTitle" 
@@ -251,30 +240,30 @@
                     FontFamily="Arial"
                     Margin="20,10,0,10"
                     />
-                </Grid>
+            </Grid>
 
-                <StackPanel 
+            <StackPanel 
                         x:Name="NoCommandPannel" 
                         Grid.Row="7" 
                         Grid.Column="0"
                         Height="110">
 
-                </StackPanel>
+            </StackPanel>
 
-                <StackPanel 
+            <StackPanel 
                         x:Name="CameraCommandsPanel" 
                         Grid.Row="7" 
                         Grid.Column="0"
                         Visibility="Collapsed">
 
-                    <Grid Grid.Row="0" Grid.Column="0" >
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="400"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <Grid Grid.Row="0" Grid.Column="0" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="400"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                        <TextBox 
+                    <TextBox 
                             Grid.Row="0" 
                             Grid.Column="0" 
                             x:Name="DeviceEngagementStringInputTextBox" 
@@ -290,7 +279,7 @@
                             AcceptsReturn="True"
                             Margin="20,0,0,30"/>
 
-                        <Button 
+                    <Button 
                             Grid.Row="0" 
                             Grid.Column="1"
                             x:Name="ClearEngagementStringButton" 
@@ -307,7 +296,7 @@
                             VerticalAlignment="Center"
                             Margin="10, 0, 0,30" />
 
-                        <Button Grid.Row="0" 
+                    <Button Grid.Row="0" 
                             Grid.Column="2"
                             x:Name="CameraButton"
                             Click="ScanQRCodeButton_Click" 
@@ -319,51 +308,51 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Margin="10,0,0,30">
-                            <StackPanel Orientation="Horizontal" Width="Auto" HorizontalAlignment="Center">
-                                <Image Source="/Assets/camwhiteico.png" 
+                        <StackPanel Orientation="Horizontal" Width="Auto" HorizontalAlignment="Center">
+                            <Image Source="/Assets/camwhiteico.png" 
                                        Width="60" 
                                        Height="60" 
                                        Margin="0,0,0,0" 
                                        HorizontalAlignment="Center" 
                                        VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                        </StackPanel>
+                    </Button>
 
-                    </Grid>
+                </Grid>
 
-                </StackPanel>
+            </StackPanel>
 
-                <StackPanel 
+            <StackPanel 
                         x:Name="NfcCommandsPanel" 
                         Grid.Row="7" 
                         Grid.Column="0"
                         Visibility="Collapsed">
 
-                    <Grid Grid.Row="0"
+                <Grid Grid.Row="0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         Margin="10,10,10,20">
 
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- ProgressRing and ProgressMessage -->
-                        <StackPanel 
+                    <!-- ProgressRing and ProgressMessage -->
+                    <StackPanel 
                             x:Name="ProgressPanel" 
                             Grid.Row="0" 
                             Grid.Column="0" 
                             HorizontalAlignment="Center" 
                             VerticalAlignment="Center">
-                            <ProgressRing 
+                        <ProgressRing 
                                 x:Name="ProgressRing" 
                                 Width="80" Height="80" 
                                 IsActive="False"
                                 Foreground="Black"/>
-                        </StackPanel>
+                    </StackPanel>
 
-                        <TextBlock
+                    <TextBlock
                             x:Name="NfcReaderTextStatus" 
                             Grid.Row="0" 
                             Grid.Column="1" 
@@ -372,86 +361,87 @@
                             FontFamily="Arial"
                             Margin="50,25,0,10"/>
 
-                    </Grid>
+                </Grid>
 
-                </StackPanel>
+            </StackPanel>
 
-            </Grid>
+        </Grid>
 
-            <!-- Results Section -->
-            <Grid 
+        <!-- Results Section -->
+        <Grid 
                 Grid.Row="0" Grid.Column="1" 
+                Grid.RowSpan="2"
                 HorizontalAlignment="Stretch" 
                 VerticalAlignment="Stretch"
                 BorderBrush="#1E534B"
                 BorderThickness="2"
                 CornerRadius="9"
-                Margin="10,20,0, 0"
+                Margin="10,10,10,10"
                 >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <!-- Top section (2/3 height) -->
+                <RowDefinition Height="Auto"/>
+                <!-- Divider -->
+                <RowDefinition Height="*"/>
+                <!-- Bottom section (1/3 height) -->
+            </Grid.RowDefinitions>
+
+            <!-- Grid layout for displaying results, initially hidden when the progress ring is visible -->
+            <Grid  x:Name="ResultsGrid"                        
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   Grid.Row="0">
+                <!-- Define Rows Dynamically Based on Visibility -->
+                <Grid.ColumnDefinitions>
+                    <!-- Image -->
+                    <ColumnDefinition Width="200"/>
+                    <!-- Section Biographical info title -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- Section Biographical info value -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- Content -->
+                </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <!-- Results Section -->
+                    <!-- Title and Validation Checks -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Image -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Age -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- First Name -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Last Name -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Sex -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Birth Date -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Document -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Issuing -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Issue Date -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Expiry Date -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Eye Color -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Height -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Resident Address -->
+                    <RowDefinition Height="*"/>
+                    <!-- Spacer -->
                 </Grid.RowDefinitions>
+               
+                <!-- Profile Image at the top -->
+                <Image x:Name="ProfileImage" Width="200" Height="200" Grid.Row="1"  Grid.Column="0" Grid.RowSpan="6" HorizontalAlignment="Center" Margin="0,10,0,0"/>
 
-                <StackPanel 
-                    x:Name="ResultPanel" 
-                    Grid.Row="0" 
-                    Grid.Column="0" 
-                    HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Stretch">
-
-                    <!-- Grid layout for displaying results, initially hidden when the progress ring is visible -->
-                    <Grid x:Name="ResultsGrid" 
-                          Grid.Row="0" 
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Center">
-                        <!-- Define Rows Dynamically Based on Visibility -->
-                        <Grid.ColumnDefinitions>
-                            <!-- Image -->
-                            <ColumnDefinition Width="200"/>
-                            <!-- Section Biographical info title -->
-                            <ColumnDefinition Width="*"/>
-                            <!-- Section Biographical info value -->
-                            <ColumnDefinition Width="*"/>
-                            <!-- Content -->
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <!-- Image -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Age -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- First Name -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Last Name -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Sex -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Birth Date -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Document -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Issuing -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Issue Date -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Expiry Date -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Mso -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Issuer recoignised -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Certification Validation Error -->
-                        </Grid.RowDefinitions>
-
-
-                        <!-- Profile Image at the top -->
-                        <Image x:Name="ProfileImage" Width="200" Height="200" Grid.Row="0"  Grid.Column="0" Grid.RowSpan="6" HorizontalAlignment="Center" Margin="0,10,0,0"/>
-
-                        <!-- Display Age Over 21 (Row 0) -->
-                        <Grid 
+                <!-- Display Age Over 21 (Row 0) -->
+                <Grid 
                             x:Name="AgeOver21TextBlockBackground"
-                            Grid.Row="0"
+                            Grid.Row="1"
                             Grid.Column="1"
                             Grid.ColumnSpan="2"
                             BorderBrush="#1E534B"
@@ -462,7 +452,7 @@
                             Margin="20,10,10,10"
                             Background="#B3B3B3"
                             Visibility="Collapsed">
-                            <TextBlock
+                    <TextBlock
                             x:Name="AgeOver21TextBlock"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Center"
@@ -473,80 +463,138 @@
                             Margin="15,5,15,5"
                             Tag="clearable" 
                             />
-                        </Grid>
-                        <!-- Display First Name -->
-                        <TextBlock Text="First Name:" FontWeight="Bold" Grid.Row="1" Grid.Column="1" Margin="0,10,5,5"
+                </Grid>
+                <!-- Display First Name -->
+                <TextBlock Text="First Name:" FontWeight="Bold" Grid.Row="2" Grid.Column="1" Margin="0,10,5,5"
                                 Visibility="{Binding Text, ElementName=FirstNameTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="FirstNameTextBlock" Grid.Row="1" Grid.Column="2" Margin="5,10,0,5" Tag="clearable"
+                <TextBlock x:Name="FirstNameTextBlock" Grid.Row="2" Grid.Column="2" Margin="5,10,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=FirstNameTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Last Name -->
-                        <TextBlock Text="Last Name:" FontWeight="Bold" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Last Name -->
+                <TextBlock Text="Last Name:" FontWeight="Bold" Grid.Row="3" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=LastNameTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="LastNameTextBlock" Grid.Row="2" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="LastNameTextBlock" Grid.Row="3" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=LastNameTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Document -->
-                        <TextBlock Text="Document:" FontWeight="Bold" Grid.Row="3" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Document -->
+                <TextBlock Text="Document:" FontWeight="Bold" Grid.Row="4" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=DocumentTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="DocumentTextBlock" Grid.Row="3" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="DocumentTextBlock" Grid.Row="4" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=DocumentTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Birth Date -->
-                        <TextBlock Text="Birth Date:" FontWeight="Bold" Grid.Row="4" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Birth Date -->
+                <TextBlock Text="Birth Date:" FontWeight="Bold" Grid.Row="5" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=BirthDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="BirthDateTextBlock" Grid.Row="4" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="BirthDateTextBlock" Grid.Row="5" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=BirthDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Expiry Date -->
-                        <TextBlock Text="Expiry Date:" FontWeight="Bold" Grid.Row="5" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Expiry Date -->
+                <TextBlock Text="Expiry Date:" FontWeight="Bold" Grid.Row="6" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=ExpiryDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="ExpiryDateTextBlock" Grid.Row="5" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="ExpiryDateTextBlock" Grid.Row="6" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=ExpiryDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Issuing Authority -->
-                        <TextBlock Text="Issuing Authority:" FontWeight="Bold" Grid.Row="6" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Issuing Authority -->
+                <TextBlock Text="Issuing Authority:" FontWeight="Bold" Grid.Row="7" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=IssuingTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="IssuingTextBlock" Grid.Row="6" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="IssuingTextBlock" Grid.Row="7" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=IssuingTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Issue Date -->
-                        <TextBlock Text="Issue Date:" FontWeight="Bold" Grid.Row="7" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Issue Date -->
+                <TextBlock Text="Issue Date:" FontWeight="Bold" Grid.Row="8" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=IssueDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="IssueDateTextBlock" Grid.Row="7" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="IssueDateTextBlock" Grid.Row="8" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=IssueDateTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Sex -->
-                        <TextBlock Text="Sex:" FontWeight="Bold" Grid.Row="8" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Sex -->
+                <TextBlock Text="Sex:" FontWeight="Bold" Grid.Row="9" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=SexTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="SexTextBlock" Grid.Row="8" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="SexTextBlock" Grid.Row="9" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=SexTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display eye color -->
-                        <TextBlock Text="Eye color:" FontWeight="Bold" Grid.Row="9" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display eye color -->
+                <TextBlock Text="Eye color:" FontWeight="Bold" Grid.Row="10" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=EyeColorTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="EyeColorTextBlock" Grid.Row="9" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="EyeColorTextBlock" Grid.Row="10" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=EyeColorTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Height -->
-                        <TextBlock Text="Height:" FontWeight="Bold" Grid.Row="10" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Height -->
+                <TextBlock Text="Height:" FontWeight="Bold" Grid.Row="11" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=HeightTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="HeightTextBlock" Grid.Row="10" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
+                <TextBlock x:Name="HeightTextBlock" Grid.Row="11" Grid.Column="2" Margin="5,5,0,5" Tag="clearable"
                                 Visibility="{Binding Text, ElementName=HeightTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- Display Resident Address -->
-                        <TextBlock Text="Resident Address:" FontWeight="Bold" Grid.Row="11" Grid.Column="1" Margin="0,5,5,5"
+                <!-- Display Resident Address -->
+                <TextBlock Text="Resident Address:" FontWeight="Bold" Grid.Row="12" Grid.Column="1" Margin="0,5,5,5"
                                 Visibility="{Binding Text, ElementName=ResidentAddressTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock x:Name="ResidentAddressTextBlock" Grid.Row="11" Grid.Column="2" Margin="5,5,0,5" Tag="clearable" TextWrapping="Wrap"
+                <TextBlock x:Name="ResidentAddressTextBlock" Grid.Row="12" Grid.Column="2" Margin="5,5,0,5" Tag="clearable" TextWrapping="Wrap"
                                 Visibility="{Binding Text, ElementName=ResidentAddressTextBlock, Converter={StaticResource StringToVisibilityConverter}}"/>
-                    </Grid>
-                </StackPanel>
             </Grid>
+
+            <!-- Divider -->
+            <Rectangle x:Name="Divider"
+                    Grid.Row="1" 
+                    Grid.ColumnSpan="3" 
+                    Height="2" 
+                    Fill="Black" 
+                    Margin="5,10,5,10"                   
+                           />
+
+            <!-- Bottom Section: Validation Checks -->
+            <Grid x:Name="ValidationGrid"
+                    Grid.Row="2" 
+                    HorizontalAlignment="Stretch" 
+                    VerticalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- Title -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- MSO Check -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Device Signed -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Issuer Signed -->
+                    <RowDefinition Height="*"/>
+                    <!-- Spacer -->
+                </Grid.RowDefinitions>
+
+                <!-- Title for Bottom Section -->
+                <TextBlock Text="Validation Checks" FontWeight="Bold" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,10,0,10" 
+                           FontSize="18" Visibility="{Binding Text, ElementName=MSOCheckIcon, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                <!-- MSO Check -->
+                <TextBlock Text="MSO Check:" FontWeight="Bold" Grid.Row="1" Grid.Column="1" Margin="0,5,5,5"
+                                   Visibility="{Binding Text, ElementName=MSOCheckIcon, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <TextBlock  x:Name="MSOCheckIcon" Grid.Row="1" Grid.Column="2"  FontSize="20" 
+                                    Foreground="Green" 
+                                    Visibility="{Binding Text, ElementName=MSOCheckIcon, Converter={StaticResource StringToVisibilityConverter}}"  Tag="clearable"/>
+
+                <!-- MSO Signed -->
+                <TextBlock Text="Device Signed:" FontWeight="Bold" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5"
+                                   Visibility="{Binding Text, ElementName=DeviceSignedIcon, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <TextBlock  x:Name="DeviceSignedIcon" Grid.Row="2" Grid.Column="2"  FontSize="20" 
+                                    Foreground="Green" 
+                                    Visibility="{Binding Text, ElementName=DeviceSignedIcon, Converter={StaticResource StringToVisibilityConverter}}" Tag="clearable"/>
+
+                <!-- IssuerSignedIcon -->
+                <TextBlock Text="Issuer Signed:" FontWeight="Bold" Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" 
+                                   Visibility="{Binding Text, ElementName=IssuerSignedIcon, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <TextBlock  x:Name="IssuerSignedIcon" Grid.Row="3" Grid.Column="2" FontSize="20" 
+                                    Foreground="Green" 
+                                    Visibility="{Binding Text, ElementName=IssuerSignedIcon, Converter={StaticResource StringToVisibilityConverter}}" Tag="clearable"/>
+
+            </Grid>
+
         </Grid>
 
         <Grid
             Grid.Row="1" Grid.Column="0" 
-            Margin="20,10,20,20"
+            Margin="10,10,0,10"
             BorderBrush="#1E534B"
             BorderThickness="2"
             CornerRadius="9">
@@ -569,7 +617,7 @@
             <Grid Grid.Row="0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                Margin="0,0,0,0">   
+                Margin="0,0,0,0">
 
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -625,9 +673,10 @@
                         <TextBlock
                             x:Name="LogsValueTextBlock"
                             FontSize="16"
+                            MaxWidth="700"
                             FontFamily="Arial"
                             Margin="10,10,10,10"
-                            TextWrapping="Wrap"
+                            TextWrapping="Wrap"                          
                             Loaded="LogsValueTextBlock_Loaded"
                             SizeChanged="LogsValueTextBlock_SizeChanged"
                         />
