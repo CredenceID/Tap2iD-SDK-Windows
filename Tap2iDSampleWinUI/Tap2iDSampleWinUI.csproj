@@ -23,7 +23,7 @@
     <AppInstallerUri>C:\Program Files\WindowsApps\Tap2iDSampleWinUI\</AppInstallerUri>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <PackageCertificateKeyFile>Tap2iDSampleWinUI_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+    <AssemblyVersion>2.6.0.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="CameraWindow.xaml" />
@@ -43,12 +43,12 @@
   <ItemGroup>
 
 
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.4.0" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.8.2" />
 
 
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
-    <PackageReference Include="Tap2iDSdk" Version="1.1.0" />
+    <PackageReference Include="Tap2iDSdk" Version="1.2.0" />
 
     <PackageReference Include="ZXing.Net" Version="0.16.9" />
     <Manifest Include="$(ApplicationManifest)" />
