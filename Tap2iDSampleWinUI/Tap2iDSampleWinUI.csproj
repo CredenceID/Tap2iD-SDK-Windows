@@ -28,6 +28,8 @@
   <ItemGroup>
     <None Remove="CameraWindow.xaml" />
     <None Remove="ResourceControl.xaml" />
+    <None Remove="Script\sendToCHP.ps1" />
+    <None Remove="Script\sendToNotepad.ps1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,19 +40,21 @@
     <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Script\sendToCHP.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Script\sendToNotepad.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
-
-
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.8.2" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6584" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.250930001-experimental1" />
+    <PackageReference Include="Tap2iDSdk" Version="1.2.1" />
 
-
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
-    <PackageReference Include="Tap2iDSdk" Version="1.2.0" />
-
-    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+    <PackageReference Include="ZXing.Net" Version="0.16.10" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 

@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -6,6 +6,9 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Security;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Tap2iDSdk;
@@ -13,6 +16,9 @@ using Tap2iDSdk.Extension;
 using Tap2iDSdk.Model;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Networking;
+using Windows.Storage.Streams;
+using Windows.UI;
 using WinRT.Interop;
 using AppWindow = Microsoft.UI.Windowing.AppWindow;
 
@@ -33,6 +39,9 @@ namespace Tap2iDSampleWinUI
         public delegate void OnQrCodeReadEventHandler(object sender, QrCodeReadEventArgs qrCodeReadEventArgs);
         public event OnQrCodeReadEventHandler OnQrCodeReadEvent;
 
+        // Store the last mDL JSON response
+        private string _lastMdlJsonResponse = string.Empty;
+
         private MainWindowViewModel _mainWindowViewModel;
         public static Windows.UI.Color UI_DARK_GREEN = Windows.UI.Color.FromArgb(0xff, 0x1e, 0x53, 0x4B);
         public static Windows.UI.Color UI_WHITE_GREEN = Windows.UI.Color.FromArgb(0xff, 0xd1, 0xe4, 0xe3);
@@ -44,6 +53,44 @@ namespace Tap2iDSampleWinUI
 
         private DispatcherTimer hideResultsTimer;
         private SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
+        private void RunPowerShellScript(string scriptPath, string json)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                // ✅ Use ArgumentList instead of string interpolation
+                psi.ArgumentList.Add("-NoProfile");
+                psi.ArgumentList.Add("-STA");
+                psi.ArgumentList.Add("-ExecutionPolicy");
+                psi.ArgumentList.Add("Bypass");
+                psi.ArgumentList.Add("-File");
+                psi.ArgumentList.Add(scriptPath);
+                psi.ArgumentList.Add("-Json");
+                psi.ArgumentList.Add(json); // pass as is
+
+                using var process = Process.Start(psi);
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                AppendLogs($"PowerShell Output: {output}");
+                if (!string.IsNullOrWhiteSpace(error))
+                    AppendLogs($"PowerShell Error: {error}");
+            }
+            catch (Exception ex)
+            {
+                AppendLogs($"Error running PowerShell: {ex.Message}");
+            }
+        }
 
         public MainWindow()
         {
@@ -162,9 +209,23 @@ namespace Tap2iDSampleWinUI
                 var tap2IdResult = await Task.Run(() => tap2idVerifier.VerifyMdocAsync(mdocConfig, stateDelegate));
 
                 ShowResults();
+
                 if (tap2IdResult.ResultError == Tap2iDResultError.OK || tap2IdResult.ResultError == Tap2iDResultError.ERROR_CONSENT_DENIED_FOR_FEW)
                 {
                     var result = tap2IdResult.Identity;
+
+                    // Serialize the entire result object for later use
+                    try
+                    {
+                        _lastMdlJsonResponse = System.Text.Json.JsonSerializer.Serialize(result);
+                        AppendLogs("mDL JSON response captured successfully.");
+                    }
+                    catch (Exception jsonEx)
+                    {
+                        AppendLogs($"Failed to serialize mDL result: {jsonEx.Message}");
+                        _lastMdlJsonResponse = string.Empty;
+                    }
+
                     UpdateAgeOver21(result.isAgeOver21);
                     FirstNameTextBlock.Text = result.givenNames;
                     LastNameTextBlock.Text = result.familyName;
@@ -183,6 +244,7 @@ namespace Tap2iDSampleWinUI
                     {
                         await Utils.SetImageAsync(ProfileImage, portrait);
                     }
+
                     //display if any error or warning for certificate:
                     if (tap2IdResult.Authentication?.ValidationError.Count > 0)
                     {
@@ -622,6 +684,60 @@ namespace Tap2iDSampleWinUI
         }
         #endregion
 
+        private void SendToChpButton_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (string.IsNullOrWhiteSpace(_lastMdlJsonResponse))
+            {
+                //ShowError("No mDL data available. Please perform the scan first.");
+                AppendLogs("⚠️ Attempted to send to CHP, but mDL JSON not found.");
+                return;
+            }
+
+            // Path to your PowerShell script
+            string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Script", "sendToCHP.ps1");
+
+            try
+            {
+                AppendLogs("Executing PowerShell script for CHP autofill...");
+                RunPowerShellScript(scriptPath, _lastMdlJsonResponse);
+            }
+            catch (Exception ex)
+            {
+                ShowError("Error while executing PowerShell script.");
+                AppendLogs($"❌ PowerShell execution error: {ex.Message}");
+            }
+        }
+
+        private String GetHumanReadableVerifyStateMessage(VerifyState verifyState)
+        {
+            String baseMessage = "Verification state change: ";
+            switch (verifyState)
+            {
+                case VerifyState.DeviceEngagementStarted:
+                    return baseMessage + "Device Engagement started";
+                case VerifyState.DeviceEngagementEnded:
+                    return baseMessage + "Device Engagement Ended";
+                case VerifyState.DeviceConnectionStarted:
+                    return baseMessage + "Device connection started";
+                case VerifyState.DeviceConnectionEnded:
+                    return baseMessage + "Connection ended";
+                case VerifyState.UserConsentStarted:
+                    return baseMessage + "Consent request sent";
+                case VerifyState.UserConsentEnded:
+                    return baseMessage + "Consent received";
+                case VerifyState.DataTransferStarted:
+                    return baseMessage + "Data transfer started";
+                case VerifyState.DataTransferEnded:
+                    return baseMessage + "Data transfer successful";
+                case VerifyState.DataValidationStarted:
+                    return baseMessage + "Data validation started";
+                case VerifyState.DataValidationEnded:
+                    return baseMessage + "Data validation validation successful";
+                default: return baseMessage + "Unknwon";
+
+            }
+        }
     }
 
     public class StringToVisibilityConverter : IValueConverter
