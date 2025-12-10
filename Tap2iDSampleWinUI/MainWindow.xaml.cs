@@ -4,8 +4,12 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Tap2iDSdk;
@@ -13,6 +17,7 @@ using Tap2iDSdk.Extension;
 using Tap2iDSdk.Model;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using WinRT.Interop;
 using AppWindow = Microsoft.UI.Windowing.AppWindow;
 
@@ -44,6 +49,10 @@ namespace Tap2iDSampleWinUI
 
         private DispatcherTimer hideResultsTimer;
         private SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
+        private const string KEY_NFC_TIMEOUT = "NfcTimeout";
+        private const string KEY_BLE_CONN_TIMEOUT = "BleConnTimeout";
+        private const string KEY_BLE_DATA_TIMEOUT = "BleDataTimeout";
 
         public MainWindow()
         {
@@ -133,79 +142,42 @@ namespace Tap2iDSampleWinUI
         {
             var acquiredSemaphore = false;
 
+            if (!await _semaphore.WaitAsync(0))
+            {
+                AppendLogs("An operation is currently running, please wait...");
+                return;
+            }
+
             try
             {
-                // Try to enter the semaphore, if already in use, it will wait
-                acquiredSemaphore = await _semaphore.WaitAsync(0);
-                if (!acquiredSemaphore)
-                    return;  // If semaphore is in use, exit the method
-
                 if (deviceEngagementMode == DeviceEngagementMode.NFC)
-                {
                     AppendLogs("Waiting for mDoc");
-                }
                 else
-                {
                     AppendLogs("Start mDoc Reading with QrCode Device Engagement");
-                }
+
                 ProgressRing.IsActive = true;
                 ProgressPanel.Visibility = Visibility.Visible;
 
-                BleWriteOption writeOption = BleWriteOption.WriteWithoutResponse;
-                var mdocConfig = new MdocConfig
+                var mdocConfig = CreateMdocConfig(deviceEngagementMode, deviceEngagementString);
+                mdocConfig.BleWriteOption = BleWriteOption.WriteWithoutResponse;
+
+                _ = Task.Run(async () =>
                 {
-                    DeviceEngagementString = deviceEngagementString,
-                    EngagementMode = deviceEngagementMode,
-                    BleWriteOption = writeOption,
-                };
+                    var tap2IdResult = await tap2idVerifier.VerifyMdocAsync(mdocConfig, stateDelegate);
 
-                var tap2IdResult = await Task.Run(() => tap2idVerifier.VerifyMdocAsync(mdocConfig, stateDelegate));
-
-                ShowResults();
-                if (tap2IdResult.ResultError == Tap2iDResultError.OK || tap2IdResult.ResultError == Tap2iDResultError.ERROR_CONSENT_DENIED_FOR_FEW)
+                    // When the background task is done, dispatch the UI update back to the UI thread.
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        HandleVerificationResult(tap2IdResult, mdocConfig);
+                    });
+                }).ContinueWith(t =>
                 {
-                    var result = tap2IdResult.Identity;
-                    UpdateAgeOver21(result.isAgeOver21);
-                    FirstNameTextBlock.Text = result.givenNames;
-                    LastNameTextBlock.Text = result.familyName;
-                    SexTextBlock.Text = result.sex.ToString() == "UNKNOWN" ? "" : result.sex.ToString();
-                    BirthDateTextBlock.Text = result.birthDate?.ToString("dd-MM-yyyy");
-                    DocumentTextBlock.Text = result.documentNumber;
-                    IssuingTextBlock.Text = result.issuingAuthority;
-                    IssueDateTextBlock.Text = result.issueDate?.ToString("dd-MM-yyyy");
-                    ExpiryDateTextBlock.Text = result.expiryDate?.ToString("dd-MM-yyyy");
-                    EyeColorTextBlock.Text = result.eyeColor;
-                    HeightTextBlock.Text = result.height.ToString();
-                    ResidentAddressTextBlock.Text = result.residentAddress;
-
-                    var portrait = result.portrait;
-                    if (portrait != null && portrait.Length > 0)
+                    _semaphore.Release();
+                    if (deviceEngagementMode == DeviceEngagementMode.NFC)
                     {
-                        await Utils.SetImageAsync(ProfileImage, portrait);
+                        ActivateDeviceEngagementOptions();
                     }
-                    //display if any error or warning for certificate:
-                    if (tap2IdResult.Authentication?.ValidationError.Count > 0)
-                    {
-                        var exceptionToDisplay = string.Join("\n", tap2IdResult.Authentication.ValidationError.Cast<Exception>().Select(ex => ex.ToString()));
-                        AppendLogs(exceptionToDisplay);
-                    }
-
-                    UpdateIcons(
-                        tap2IdResult.Authentication.IsMsoValid,
-                        tap2IdResult.Authentication.DeviceSignedAuthenticated,
-                        tap2IdResult.Authentication.IssuerSignedAuthenticated);
-                }
-                else
-                {
-                    if (tap2IdResult.ResultError != Tap2iDResultError.NoNFCTagDetected)
-                    {
-                        AppendLogs($"Error reading mDoc: {(int)tap2IdResult.ResultError}");
-                        AppendLogs($"Error reading mDoc: {tap2IdResult.ResultError.GetDescription()}");
-                        ShowError(tap2IdResult.ResultError.GetDescription());
-                    }
-                    ProgressRing.IsActive = false;
-                    ProgressPanel.Visibility = Visibility.Collapsed;
-                }
+                });
 
             }
             catch (Exception ex)
@@ -216,16 +188,169 @@ namespace Tap2iDSampleWinUI
             }
             finally
             {
-                if (acquiredSemaphore)
-                {
-                    // Only release if semaphore was successfully acquired
-                    _semaphore.Release();
-                }
                 if (deviceEngagementMode == DeviceEngagementMode.NFC)
                 {
                     ActivateDeviceEngagementOptions();
                 }
             }
+        }
+
+        private async void HandleVerificationResult(Tap2iDResult tap2IdResult, MdocConfig mdocConfig)
+        {
+            // This method is now guaranteed to run on the UI thread.
+            ShowResults();
+            if (tap2IdResult.ResultError == Tap2iDResultError.OK || tap2IdResult.ResultError == Tap2iDResultError.ERROR_CONSENT_DENIED_FOR_FEW)
+            {
+                var result = tap2IdResult.Identity;
+
+                // Check if portrait exists and set it using Utils
+                if (result.portrait != null && result.portrait.Length > 0)
+                {
+                    await Utils.SetImageAsync(ProfileImage, result.portrait);
+                }
+                else
+                {
+                    // Clear image if not present (or set a default placeholder)
+                    ProfileImage.Source = null;
+                }
+
+                UpdateResultsList(result);
+
+                // 4. Handle other UI elements
+                UpdateAgeOver21(result.isAgeOver21);
+
+                if (tap2IdResult.Authentication?.ValidationError.Count > 0)
+                {
+                    var exceptionToDisplay = string.Join("\n", tap2IdResult.Authentication.ValidationError.Cast<Exception>().Select(ex => ex.ToString()));
+                    AppendLogs(exceptionToDisplay);
+                }
+
+                UpdateIcons(
+                    tap2IdResult.Authentication.IsMsoValid,
+                    tap2IdResult.Authentication.DeviceSignedAuthenticated,
+                    tap2IdResult.Authentication.IssuerSignedAuthenticated,
+                    tap2IdResult.Authentication.IssuerRecognized);
+            }
+            else
+            {
+                this.ResultsList.ItemsSource = null;
+                this.ProfileImage.DataContext = null;
+                if (tap2IdResult.ResultError != Tap2iDResultError.NoNFCTagDetected)
+                {
+                    AppendLogs($"Error reading mDoc: {tap2IdResult.ResultError.GetDescription()}");
+                    ShowError(tap2IdResult.ResultError.GetDescription());
+                }
+            }
+
+            ProgressRing.IsActive = false;
+            ProgressPanel.Visibility = Visibility.Collapsed;
+
+            if (mdocConfig.EngagementMode == DeviceEngagementMode.NFC) // You might need to pass this into the handler
+            {
+                ActivateDeviceEngagementOptions();
+            }
+        }
+
+        private void UpdateResultsList(CIdentity result)
+        {
+            var displayList = new ObservableCollection<DisplayItem>();
+
+            // Properties to explicitly ignore
+            var ignoredProperties = new HashSet<string>
+            {
+                nameof(CIdentity.portrait),   // Handled manually
+                nameof(CIdentity.type),       // Internal
+                nameof(CIdentity.transactionID),
+                nameof(CIdentity.signatureUsualMark), // Byte array, hard to display as text
+                nameof(CIdentity.isAgeOver18),
+                nameof(CIdentity.isAgeOver21),
+            };
+
+            PropertyInfo[] properties = result.GetType().GetProperties();
+
+            foreach (var prop in properties)
+            {
+                // A. Skip ignored properties
+                if (ignoredProperties.Contains(prop.Name)) continue;
+
+                // B. Get the value
+                object? val = prop.GetValue(result);
+
+                string? displayValue = val switch
+                {
+                    // 1. Date Formatting
+                    DateTime dt => dt.ToString("dd-MM-yyyy"),
+
+                    // 2. Sex: Filter "UNKNOWN" explicitly by name (Works for Enum OR String types)
+                    _ when prop.Name == nameof(CIdentity.sex) && val.ToString().ToUpper() == "UNKNOWN" => null,
+
+                    // 3. DHS Status Exception: ALWAYS show, even if 0
+                    long l when prop.Name == nameof(CIdentity.dhsTemporaryLawfulStatus) => l.ToString(),
+
+                    // 4. Generic Numeric Logic: Hide if 0 (Height, Weight, Age, etc.)
+                    int i when i == 0 => null,
+                    long l when l == 0 => null,
+                    double d when d == 0 => null,
+
+                    // 5. Default case (Strings, non-zero numbers)
+                    _ => val?.ToString()
+                };
+
+                // D. Final check for empty strings
+                if (!string.IsNullOrWhiteSpace(displayValue))
+                {
+                    // E. Make the Label pretty
+                    string label = PrettifyLabel(prop.Name);
+                    displayList.Add(new DisplayItem(label, displayValue));
+                }
+            }
+
+            // Bind to UI
+            this.ResultsList.ItemsSource = displayList;
+        }
+
+        // --- Helper to Convert "dhsCompliance" -> "DHS Compliance" ---
+        private string PrettifyLabel(string propertyName)
+        {
+            // Add spaces before capital letters (e.g., "givenNames" -> "given Names")
+            var withSpaces = Regex.Replace(propertyName, "(\\B[A-Z])", " $1");
+
+            // Capitalize the first letter (e.g., "given Names" -> "Given Names")
+            if (withSpaces.Length > 0)
+            {
+                withSpaces = char.ToUpper(withSpaces[0]) + withSpaces.Substring(1);
+            }
+
+            // Add colon
+            return withSpaces + ":";
+        }
+
+        private MdocConfig CreateMdocConfig(DeviceEngagementMode mode, string engagementString = "")
+        {
+            var config = new MdocConfig
+            {
+                EngagementMode = mode,
+                DeviceEngagementString = engagementString,
+                BleWriteOption = BleWriteOption.Write,
+                IsReaderAuthentication = false
+            };
+
+            // Load Timeouts from Persistence
+            var localSettings = ApplicationData.Current.LocalSettings.Values;
+
+            // Attempt to parse saved values. MdocConfig setters will handle range enforcement (5-300s) automatically.
+            if (int.TryParse(localSettings[KEY_NFC_TIMEOUT]?.ToString(), out int nfc))
+                config.NfcDeviceEngagementTimeout = nfc;
+
+            if (int.TryParse(localSettings[KEY_BLE_CONN_TIMEOUT]?.ToString(), out int bleConn))
+                config.BleConnectionTimeout = bleConn;
+
+            if (int.TryParse(localSettings[KEY_BLE_DATA_TIMEOUT]?.ToString(), out int bleData))
+                config.BleConsentAndDataTransferTimeout = bleData;
+
+            AppendLogs($"MdocConfig initialized with Timeouts -> NFC: {config.NfcDeviceEngagementTimeout}, BLE-Conn: {config.BleConnectionTimeout}, BLE-Data: {config.BleConsentAndDataTransferTimeout}");
+
+            return config;
         }
 
         private void VerifyAndInitializePcscReader()
@@ -253,6 +378,21 @@ namespace Tap2iDSampleWinUI
                 OnQrCodeReadEvent(this, new QrCodeReadEventArgs(value));
             });
         }
+
+        private void UpdateIcons(bool msoCheck = false, bool deviceSigned = false, bool issuerSigned = false, bool isIssuerRecognized = false)
+        {
+            MSOCheckIcon.Text = msoCheck ? "\u2713" : "\u2716";
+            MSOCheckIcon.Foreground = new SolidColorBrush(msoCheck ? Colors.Green : Colors.Red);
+
+            DeviceSignedIcon.Text = deviceSigned ? "\u2713" : "\u2716";
+            DeviceSignedIcon.Foreground = new SolidColorBrush(deviceSigned ? Colors.Green : Colors.Red);
+
+            IssuerSignedIcon.Text = issuerSigned ? "\u2713" : "\u2716";
+            IssuerSignedIcon.Foreground = new SolidColorBrush(issuerSigned ? Colors.Green : Colors.Red);
+
+            TrustedCertificateIcon.Text = isIssuerRecognized ? "\u2713" : "\u2716";
+            TrustedCertificateIcon.Foreground = new SolidColorBrush(isIssuerRecognized ? Colors.Green : Colors.Red);
+        }
         #endregion
 
         #region UI Handling
@@ -260,13 +400,7 @@ namespace Tap2iDSampleWinUI
         private void ClearResultsFields()
         {
             AgeOver21TextBlockBackground.Visibility = Visibility.Collapsed;
-            foreach (var child in ResultsGrid.Children)
-            {
-                if (child is TextBlock textBlock && textBlock.Tag?.ToString() == "clearable")
-                {
-                    textBlock.Text = string.Empty; // Clear the TextBlock
-                }
-            }
+            ResultsList.ItemsSource = null;
             ProfileImage.Source = null;
         }
 
@@ -572,6 +706,32 @@ namespace Tap2iDSampleWinUI
                     DeviceEngagementStringInputTextBox.Text = DeviceEngagementStringInputTextBox.Text.Substring(0, DeviceEngagementStringInputTextBox.Text.IndexOf("\r"));
                     ExecuteVerifyMdoc(DeviceEngagementStringInputTextBox.Text, DeviceEngagementMode.QrCode);
                 }
+            }
+        }
+
+        private async void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SettingsDialog();
+
+            // 1. Load current values from LocalSettings (or use Defaults)
+            var localSettings = ApplicationData.Current.LocalSettings.Values;
+
+            dialog.NfcTimeout = localSettings[KEY_NFC_TIMEOUT]?.ToString() ?? MdocConfig.DefaultNfcTimeout.ToString();
+            dialog.BleConnectionTimeout = localSettings[KEY_BLE_CONN_TIMEOUT]?.ToString() ?? MdocConfig.DefaultBleConnectionTimeout.ToString();
+            dialog.BleDataTimeout = localSettings[KEY_BLE_DATA_TIMEOUT]?.ToString() ?? MdocConfig.DefaultBleDataTimeout.ToString();
+
+            // 2. Show Dialog (Must set XamlRoot)
+            dialog.XamlRoot = this.Content.XamlRoot;
+            var result = await dialog.ShowAsync();
+
+            // 3. Save if user clicked "Save"
+            if (result == ContentDialogResult.Primary)
+            {
+                localSettings[KEY_NFC_TIMEOUT] = dialog.NfcTimeout;
+                localSettings[KEY_BLE_CONN_TIMEOUT] = dialog.BleConnectionTimeout;
+                localSettings[KEY_BLE_DATA_TIMEOUT] = dialog.BleDataTimeout;
+
+                AppendLogs("Timeout settings saved.");
             }
         }
         #endregion  

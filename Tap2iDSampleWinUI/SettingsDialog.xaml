@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Tap2iDSampleWinUI.SettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Tap2iDSampleWinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Settings"
+    PrimaryButtonText="Save"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    Width="400">
+
+    <StackPanel Spacing="15">
+        <TextBlock Text="Configure SDK Timeouts (Seconds)" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+        <!-- NFC Timeout -->
+        <TextBox x:Name="NfcTimeoutInput" 
+                 Header="NFC Engagement Timeout" 
+                 PlaceholderText="Default: 30"
+                 InputScope="Number"/>
+
+        <!-- BLE Connection Timeout -->
+        <TextBox x:Name="BleConnectionTimeoutInput" 
+                 Header="Bluetooth Connection Timeout" 
+                 PlaceholderText="Default: 10"
+                 InputScope="Number"/>
+
+        <!-- BLE Data Transfer Timeout -->
+        <TextBox x:Name="BleDataTimeoutInput" 
+                 Header="Bluetooth Consent &amp; Data Transfer Timeout" 
+                 PlaceholderText="Default: 30"
+                 InputScope="Number"/>
+
+        <TextBlock Text="Note: Values will be automatically clamped between 5s and 300s by the SDK." 
+                   FontStyle="Italic" FontSize="12" Foreground="Gray" TextWrapping="Wrap"/>
+    </StackPanel>
+</ContentDialog>
