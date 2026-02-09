@@ -4,14 +4,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Tap2iDSampleWinUI.ViewModels;
 using Tap2iDSdk;
 using Tap2iDSdk.Extension;
 using Tap2iDSdk.Model;
@@ -105,7 +102,6 @@ namespace Tap2iDSampleWinUI
             hideResultsTimer.Interval = TimeSpan.FromSeconds(20);
             hideResultsTimer.Tick += HideResultsAfterTimeout;
 
-            Divider.Visibility = Visibility.Collapsed;
         }
 
         #region App Information
@@ -161,23 +157,12 @@ namespace Tap2iDSampleWinUI
                 var mdocConfig = CreateMdocConfig(deviceEngagementMode, deviceEngagementString);
                 mdocConfig.BleWriteOption = BleWriteOption.WriteWithoutResponse;
 
-                _ = Task.Run(async () =>
+                var tap2IdResult = await Task.Run(async () =>
                 {
-                    var tap2IdResult = await tap2idVerifier.VerifyMdocAsync(mdocConfig, stateDelegate);
-
-                    // When the background task is done, dispatch the UI update back to the UI thread.
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        HandleVerificationResult(tap2IdResult, mdocConfig);
-                    });
-                }).ContinueWith(t =>
-                {
-                    _semaphore.Release();
-                    if (deviceEngagementMode == DeviceEngagementMode.NFC)
-                    {
-                        ActivateDeviceEngagementOptions();
-                    }
+                    return await tap2idVerifier.VerifyMdocAsync(mdocConfig, stateDelegate);
                 });
+
+                HandleVerificationResult(tap2IdResult, mdocConfig);
 
             }
             catch (Exception ex)
@@ -188,6 +173,9 @@ namespace Tap2iDSampleWinUI
             }
             finally
             {
+                ProgressRing.IsActive = false;
+                ProgressPanel.Visibility = Visibility.Collapsed;
+                _semaphore.Release();
                 if (deviceEngagementMode == DeviceEngagementMode.NFC)
                 {
                     ActivateDeviceEngagementOptions();
@@ -197,132 +185,47 @@ namespace Tap2iDSampleWinUI
 
         private async void HandleVerificationResult(Tap2iDResult tap2IdResult, MdocConfig mdocConfig)
         {
-            // This method is now guaranteed to run on the UI thread.
             ShowResults();
             if (tap2IdResult.ResultError == Tap2iDResultError.OK || tap2IdResult.ResultError == Tap2iDResultError.ERROR_CONSENT_DENIED_FOR_FEW)
             {
-                var result = tap2IdResult.Identity;
+                // --- NEW MULTI-DOC ---
+                var viewModels = new ObservableCollection<DocumentViewModel>();
 
-                // Check if portrait exists and set it using Utils
-                if (result.portrait != null && result.portrait.Length > 0)
+                if (tap2IdResult.Documents != null && tap2IdResult.Documents.Count > 0)
                 {
-                    await Utils.SetImageAsync(ProfileImage, result.portrait);
+                    foreach (var doc in tap2IdResult.Documents)
+                    {
+                        // Convert SDK Model -> UI ViewModel (Async for image processing)
+                        var vm = await DocumentViewModel.FromVerifiedDocumentAsync(doc);
+                        viewModels.Add(vm);
+                        // Log Validation Errors specific to this document
+                        if (doc.Authentication.ValidationErrors.Count > 0)
+                        {
+                            foreach (var err in doc.Authentication.ValidationErrors)
+                            {
+                                // Log format: "[org.iso...mDL] Validation Error: Message"
+                                AppendLogs($"[{doc.DocType}] Validation Error: {err.Message}");
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    // Clear image if not present (or set a default placeholder)
-                    ProfileImage.Source = null;
+                    AppendLogs("No documents were returned in the response.");
                 }
 
-                UpdateResultsList(result);
-
-                // 4. Handle other UI elements
-                UpdateAgeOver21(result.isAgeOver21);
-
-                if (tap2IdResult.Authentication?.ValidationError.Count > 0)
-                {
-                    var exceptionToDisplay = string.Join("\n", tap2IdResult.Authentication.ValidationError.Cast<Exception>().Select(ex => ex.ToString()));
-                    AppendLogs(exceptionToDisplay);
-                }
-
-                UpdateIcons(
-                    tap2IdResult.Authentication.IsMsoValid,
-                    tap2IdResult.Authentication.DeviceSignedAuthenticated,
-                    tap2IdResult.Authentication.IssuerSignedAuthenticated,
-                    tap2IdResult.Authentication.IssuerRecognized);
+                // Bind the list
+                this.DocumentsListControl.ItemsSource = viewModels;
+                // ---------------------------              
             }
             else
             {
-                this.ResultsList.ItemsSource = null;
-                this.ProfileImage.DataContext = null;
+                AppendLogs($"Error reading mDoc: {tap2IdResult.ResultError.GetDescription()}");
                 if (tap2IdResult.ResultError != Tap2iDResultError.NoNFCTagDetected)
                 {
-                    AppendLogs($"Error reading mDoc: {tap2IdResult.ResultError.GetDescription()}");
                     ShowError(tap2IdResult.ResultError.GetDescription());
                 }
             }
-
-            ProgressRing.IsActive = false;
-            ProgressPanel.Visibility = Visibility.Collapsed;
-
-            if (mdocConfig.EngagementMode == DeviceEngagementMode.NFC) // You might need to pass this into the handler
-            {
-                ActivateDeviceEngagementOptions();
-            }
-        }
-
-        private void UpdateResultsList(CIdentity result)
-        {
-            var displayList = new ObservableCollection<DisplayItem>();
-
-            // Properties to explicitly ignore
-            var ignoredProperties = new HashSet<string>
-            {
-                nameof(CIdentity.portrait),   // Handled manually
-                nameof(CIdentity.type),       // Internal
-                nameof(CIdentity.transactionID),
-                nameof(CIdentity.signatureUsualMark), // Byte array, hard to display as text
-                nameof(CIdentity.isAgeOver18),
-                nameof(CIdentity.isAgeOver21),
-            };
-
-            PropertyInfo[] properties = result.GetType().GetProperties();
-
-            foreach (var prop in properties)
-            {
-                // A. Skip ignored properties
-                if (ignoredProperties.Contains(prop.Name)) continue;
-
-                // B. Get the value
-                object? val = prop.GetValue(result);
-
-                string? displayValue = val switch
-                {
-                    // 1. Date Formatting
-                    DateTime dt => dt.ToString("dd-MM-yyyy"),
-
-                    // 2. Sex: Filter "UNKNOWN" explicitly by name (Works for Enum OR String types)
-                    _ when prop.Name == nameof(CIdentity.sex) && val.ToString().ToUpper() == "UNKNOWN" => null,
-
-                    // 3. DHS Status Exception: ALWAYS show, even if 0
-                    long l when prop.Name == nameof(CIdentity.dhsTemporaryLawfulStatus) => l.ToString(),
-
-                    // 4. Generic Numeric Logic: Hide if 0 (Height, Weight, Age, etc.)
-                    int i when i == 0 => null,
-                    long l when l == 0 => null,
-                    double d when d == 0 => null,
-
-                    // 5. Default case (Strings, non-zero numbers)
-                    _ => val?.ToString()
-                };
-
-                // D. Final check for empty strings
-                if (!string.IsNullOrWhiteSpace(displayValue))
-                {
-                    // E. Make the Label pretty
-                    string label = PrettifyLabel(prop.Name);
-                    displayList.Add(new DisplayItem(label, displayValue));
-                }
-            }
-
-            // Bind to UI
-            this.ResultsList.ItemsSource = displayList;
-        }
-
-        // --- Helper to Convert "dhsCompliance" -> "DHS Compliance" ---
-        private string PrettifyLabel(string propertyName)
-        {
-            // Add spaces before capital letters (e.g., "givenNames" -> "given Names")
-            var withSpaces = Regex.Replace(propertyName, "(\\B[A-Z])", " $1");
-
-            // Capitalize the first letter (e.g., "given Names" -> "Given Names")
-            if (withSpaces.Length > 0)
-            {
-                withSpaces = char.ToUpper(withSpaces[0]) + withSpaces.Substring(1);
-            }
-
-            // Add colon
-            return withSpaces + ":";
         }
 
         private MdocConfig CreateMdocConfig(DeviceEngagementMode mode, string engagementString = "")
@@ -379,41 +282,13 @@ namespace Tap2iDSampleWinUI
             });
         }
 
-        private void UpdateIcons(bool msoCheck = false, bool deviceSigned = false, bool issuerSigned = false, bool isIssuerRecognized = false)
-        {
-            MSOCheckIcon.Text = msoCheck ? "\u2713" : "\u2716";
-            MSOCheckIcon.Foreground = new SolidColorBrush(msoCheck ? Colors.Green : Colors.Red);
-
-            DeviceSignedIcon.Text = deviceSigned ? "\u2713" : "\u2716";
-            DeviceSignedIcon.Foreground = new SolidColorBrush(deviceSigned ? Colors.Green : Colors.Red);
-
-            IssuerSignedIcon.Text = issuerSigned ? "\u2713" : "\u2716";
-            IssuerSignedIcon.Foreground = new SolidColorBrush(issuerSigned ? Colors.Green : Colors.Red);
-
-            TrustedCertificateIcon.Text = isIssuerRecognized ? "\u2713" : "\u2716";
-            TrustedCertificateIcon.Foreground = new SolidColorBrush(isIssuerRecognized ? Colors.Green : Colors.Red);
-        }
         #endregion
 
         #region UI Handling
         // Clear all the text block fields
         private void ClearResultsFields()
         {
-            AgeOver21TextBlockBackground.Visibility = Visibility.Collapsed;
-            ResultsList.ItemsSource = null;
-            ProfileImage.Source = null;
-        }
-
-        private void ClearValidationsFields()
-        {
-            foreach (var child in ValidationGrid.Children)
-            {
-                if (child is TextBlock textBlock && textBlock.Tag?.ToString() == "clearable")
-                {
-                    textBlock.Text = string.Empty; // Clear the TextBlock
-                }
-            }
-            Divider.Visibility = Visibility.Collapsed;
+            DocumentsListControl.ItemsSource = null;
         }
 
         private void ClearEngagementFields()
@@ -437,9 +312,6 @@ namespace Tap2iDSampleWinUI
 
         private void ShowResults()
         {
-            ResultsGrid.Visibility = Visibility.Visible;
-            ValidationGrid.Visibility = Visibility.Visible;
-            Divider.Visibility = Visibility.Visible;
             hideResultsTimer.Stop();  // Stop any previous running timer
             hideResultsTimer.Start();
         }
@@ -448,7 +320,6 @@ namespace Tap2iDSampleWinUI
         private void HideResultsAfterTimeout(object sender, object e)
         {
             ClearResultsFields();
-            ClearValidationsFields();
             hideResultsTimer.Stop();  // Stop the timer
         }
 
@@ -508,39 +379,27 @@ namespace Tap2iDSampleWinUI
             });
         }
 
-        private void UpdateAgeOver21(AgeOverPossibleValues value)
-        {
-            if (value == AgeOverPossibleValues.Not_Retrieved)
-            {
-                AgeOver21TextBlock.Visibility = Visibility.Collapsed;
-                AgeOver21TextBlockBackground.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                AgeOver21TextBlock.Visibility = Visibility.Visible;
-                AgeOver21TextBlockBackground.Visibility = Visibility.Visible;
-                if (value == AgeOverPossibleValues.True)
-                {
-                    AgeOver21TextBlockBackground.Background = new SolidColorBrush(Colors.DarkGreen);
-                }
-                else if (value == AgeOverPossibleValues.False)
-                {
-                    AgeOver21TextBlockBackground.Background = new SolidColorBrush(Colors.DarkRed);
-                }
-            }
-        }
-
-        private void UpdateIcons(bool msoCheck = false, bool deviceSigned = false, bool issuerSigned = false)
-        {
-            MSOCheckIcon.Text = msoCheck ? "\u2713" : "\u2716";
-            MSOCheckIcon.Foreground = new SolidColorBrush(msoCheck ? Colors.Green : Colors.Red);
-
-            DeviceSignedIcon.Text = deviceSigned ? "\u2713" : "\u2716";
-            DeviceSignedIcon.Foreground = new SolidColorBrush(deviceSigned ? Colors.Green : Colors.Red);
-
-            IssuerSignedIcon.Text = issuerSigned ? "\u2713" : "\u2716";
-            IssuerSignedIcon.Foreground = new SolidColorBrush(issuerSigned ? Colors.Green : Colors.Red);
-        }
+        /* private void UpdateAgeOver21(AgeOverPossibleValues value)
+         {
+             if (value == AgeOverPossibleValues.Not_Retrieved)
+             {
+                 AgeOver21TextBlock.Visibility = Visibility.Collapsed;
+                 AgeOver21TextBlockBackground.Visibility = Visibility.Collapsed;
+             }
+             else
+             {
+                 AgeOver21TextBlock.Visibility = Visibility.Visible;
+                 AgeOver21TextBlockBackground.Visibility = Visibility.Visible;
+                 if (value == AgeOverPossibleValues.True)
+                 {
+                     AgeOver21TextBlockBackground.Background = new SolidColorBrush(Colors.DarkGreen);
+                 }
+                 else if (value == AgeOverPossibleValues.False)
+                 {
+                     AgeOver21TextBlockBackground.Background = new SolidColorBrush(Colors.DarkRed);
+                 }
+             }
+         }   */
 
         private void DisplayQrCodeDeviceEngagementFeature()
         {
