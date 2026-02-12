@@ -2,17 +2,23 @@
 
 <img width="1187" height="297" alt="sdk windows" src="https://github.com/user-attachments/assets/61ab5654-5475-4bc9-b1f0-d39da59b4dce" />
 
-**Credence ID's Tap2iD SDK** is a crucial component of the Verify with Credence (VwC) platform, designed for mobile ID verification. It adheres to the ISO/IEC 18013-5:2021 standard, which establishes an interoperable digital representation for mobile-based credentials, such as mobile driver's licenses (mDL). The SDK is available for integration with existing mobile apps on Android, iOS, and Windows desktop platforms. The Tap2iD SDK combines the functionalities offered by various digital identity libraries to provide mDL verification capabilities to third-party apps.
+**Credence ID’s Tap2iD SDK** is a standards-based digital identity verification SDK within the Verify with Credence (VwC) platform. It enables secure verification of multiple ISO-compliant mobile credentials, including:
+
+Mobile Driving Licenses (mDL) – ISO/IEC 18013.1
+
+Photo ID mDocs – ISO/IEC 23220.1
+
+EU Digital Identity Personal Identification (EUDI PID) - eu.europa.ec.eudi.pid.1
+
+Available for Android, iOS, and Windows desktop, the SDK allows seamless integration into existing applications, providing interoperable, multi-document verification capabilities. Tap2iD SDK abstracts the complexity of digital identity protocols and cryptographic validation, delivering a unified and scalable verification solution for modern digital credential ecosystems.
 
 ---
 
 ## Pre-requisites
 
-### Register on VwC
-- Follow the [Step-by-Step Instruction to Register on CredenceID VwC Portal](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Register-on-Verify-with-Credence-Portal) to get started.
+### Complete your Verify with Credence portal registration and generate the SDK license key required to begin integration
+- Follow the [Prerequisite: Verify with Credence Portal Registration & Key Generation](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Prerequisite:-Verify-with-Credence-Portal-Registration-&-Key-Generation) to get started.
 
-### Generate SDK License Key
-- Use the [Step-by-Step Instructions to Generate SDK License Key](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Generate-License-Key) to obtain the required license for SDK integration.
 
 ## Supported Hardware
 For proper functionality, the Tap2iD SDK for Windows requires compatible hardware for its different data capture methods.
@@ -40,8 +46,9 @@ For QR code engagement, the SDK can use:
 - [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Integrate-Tap2iD-Windows-SDK)
 
 ---
-© 2024 Credence ID LLC. All rights reserved.
+© 2026 Credence ID LLC. All rights reserved.
 
 This Sample App is provided by Credence ID for demonstration purposes only and is intended to showcase the usage of the Tap2iD SDK. This Sample App, including its code, assets, and associated materials, is the exclusive property of Credence ID.
+
 
 
