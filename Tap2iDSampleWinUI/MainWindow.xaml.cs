@@ -6,8 +6,10 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Tap2iDBluetoothCommon;
 using Tap2iDSampleWinUI.ViewModels;
 using Tap2iDSdk;
 using Tap2iDSdk.Extension;
@@ -58,6 +60,10 @@ namespace Tap2iDSampleWinUI
             m_AppWindow = GetAppWindowForCurrentWindow();
             m_AppWindow.Title = "Tap2iD SDK Sample for Windows";
             m_AppWindow.SetIcon("Assets/credence.ico");
+
+            // Apply the preferred startup size on first activation (Resize in the constructor
+            // runs before the window is shown and does not stick reliably).
+            this.Activated += MainWindow_Activated;
 
             _mainWindowViewModel = new MainWindowViewModel(this);
 
@@ -116,6 +122,77 @@ namespace Tap2iDSampleWinUI
             IntPtr hWnd = WindowNative.GetWindowHandle(this);
             WindowId wndId = Win32Interop.GetWindowIdFromWindow(hWnd);
             return AppWindow.GetFromWindowId(wndId);
+        }
+        #endregion
+
+        #region Window Sizing
+        private bool _initialSizeApplied = false;
+
+        // Open at a preferred size matched to the monitor orientation: a wide window on
+        // landscape displays (side-by-side layout) and a tall window on portrait displays
+        // (stacked layout). Clamped to the work area and centered.
+        private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
+        {
+            if (_initialSizeApplied) return;
+            _initialSizeApplied = true;
+            try
+            {
+                var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(
+                    m_AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
+                if (area == null) return;
+                var work = area.WorkArea;
+                bool portrait = work.Height > work.Width;
+                int prefW = portrait ? 1000 : 1440;
+                int prefH = portrait ? 1500 : 920;
+                int w = Math.Min(prefW, (int)(work.Width * 0.92));
+                int h = Math.Min(prefH, (int)(work.Height * 0.92));
+                m_AppWindow.Resize(new Windows.Graphics.SizeInt32(w, h));
+                int x = work.X + (work.Width - w) / 2;
+                int y = work.Y + (work.Height - h) / 2;
+                m_AppWindow.Move(new Windows.Graphics.PointInt32(x, y));
+            }
+            catch { /* sizing is best-effort */ }
+        }
+        #endregion
+
+        #region Adaptive Layout
+        // Reflow between side-by-side (wide) and stacked (narrow / portrait) layouts.
+        // Driven from code because AdaptiveTrigger state triggers do not reliably evaluate
+        // on a Window's root Grid in WinUI 3 desktop.
+        private const double WideLayoutThreshold = 1150;
+        private bool _layoutInitialized = false;
+        private bool _isWideLayout = true;
+
+        private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            bool wide = e.NewSize.Width >= WideLayoutThreshold;
+            if (_layoutInitialized && wide == _isWideLayout) return;
+            _layoutInitialized = true;
+            _isWideLayout = wide;
+            if (wide) ApplyWideLayout(); else ApplyNarrowLayout();
+        }
+
+        private void ApplyWideLayout()
+        {
+            RightCol.Width = new GridLength(1, GridUnitType.Star);
+            LeftCol.MinWidth = 360; LeftCol.MaxWidth = 600;
+            TopRow.Height = new GridLength(3, GridUnitType.Star);
+            MidRow.Height = new GridLength(2, GridUnitType.Star);
+            BottomRow.Height = new GridLength(0);
+            Grid.SetRow(ResultsPanel, 0); Grid.SetColumn(ResultsPanel, 1); Grid.SetRowSpan(ResultsPanel, 3);
+            Grid.SetRow(LogsPanel, 1); Grid.SetColumn(LogsPanel, 0);
+        }
+
+        private void ApplyNarrowLayout()
+        {
+            // Single column: controls (sized to content), then results, then logs.
+            RightCol.Width = new GridLength(0);
+            LeftCol.MinWidth = 0; LeftCol.MaxWidth = double.PositiveInfinity;
+            TopRow.Height = GridLength.Auto;
+            MidRow.Height = new GridLength(3, GridUnitType.Star);
+            BottomRow.Height = new GridLength(2, GridUnitType.Star);
+            Grid.SetRow(ResultsPanel, 1); Grid.SetColumn(ResultsPanel, 0); Grid.SetRowSpan(ResultsPanel, 1);
+            Grid.SetRow(LogsPanel, 2); Grid.SetColumn(LogsPanel, 0);
         }
         #endregion
 
@@ -235,7 +312,9 @@ namespace Tap2iDSampleWinUI
                 EngagementMode = mode,
                 DeviceEngagementString = engagementString,
                 BleWriteOption = BleWriteOption.Write,
-                IsReaderAuthentication = false
+                // The current SDK data-retrieval layer requires a reader certificate; the SDK
+                // falls back to its embedded reader cert/key when no file is present.
+                IsReaderAuthentication = true
             };
 
             // Load Timeouts from Persistence
@@ -250,6 +329,14 @@ namespace Tap2iDSampleWinUI
 
             if (int.TryParse(localSettings[KEY_BLE_DATA_TIMEOUT]?.ToString(), out int bleData))
                 config.BleConsentAndDataTransferTimeout = bleData;
+
+            // CIE-6391: per-capability reader selection from the dropdowns (null = default).
+            config.QrPeripheral = SelectedModel(QrReaderCombo);
+            config.NfcPeripheral = SelectedModel(NfcReaderCombo);
+            config.BlePeripheral = SelectedModel(BleReaderCombo);
+            AppendLogs($"Selected readers -> QR: {config.QrPeripheral?.ToString() ?? "default"}, " +
+                      $"NFC: {config.NfcPeripheral?.ToString() ?? "default"}, " +
+                      $"BLE: {config.BlePeripheral?.ToString() ?? "default"}");
 
             AppendLogs($"MdocConfig initialized with Timeouts -> NFC: {config.NfcDeviceEngagementTimeout}, BLE-Conn: {config.BleConnectionTimeout}, BLE-Data: {config.BleConsentAndDataTransferTimeout}");
 
@@ -488,7 +575,76 @@ namespace Tap2iDSampleWinUI
             VerifyAndInitializePcscReader();
             UpdateProfileInformation(result.LicenseVerificationResult.ReaderProfile);
             UpdateSdkVersionInformation(tap2idVerifier.GetVersion());
+            _ = LogPeripheralStatusAsync();
         }
+
+        /// <summary>
+        /// Reports detected engagement hardware per capability via the SDK's
+        /// CheckAllPeripheralStatusAsync API (BLE follows the configured framework).
+        /// </summary>
+        private async Task LogPeripheralStatusAsync()
+        {
+            try
+            {
+                AppendLogs("Checking peripheral hardware...");
+                var status = await tap2idVerifier.CheckAllPeripheralStatusAsync();
+                AppendLogs($"  QR  scanner: {DescribePeripheral(status.Qr)}");
+                AppendLogs($"  NFC reader : {DescribePeripheral(status.Nfc)}");
+                AppendLogs($"  BLE radio  : {DescribePeripheral(status.Ble)}");
+
+                var available = string.Join(", ", status.Available.Select(p => p.Model));
+                AppendLogs($"  Available  : {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                PopulatePeripheralPickers(status);
+            }
+            catch (Exception ex)
+            {
+                AppendLogs($"Peripheral status check failed: {ex.Message}");
+            }
+        }
+
+        private static string DescribePeripheral(PeripheralStatus status)
+        {
+            var firmware = string.IsNullOrEmpty(status.FirmwareVersion) ? "" : $", fw {status.FirmwareVersion}";
+            return $"{status.Selected} [{status.State}{firmware}] {status.Message}";
+        }
+
+        /// <summary>One reader option in a capability dropdown; Model null = SDK default.</summary>
+        private class ReaderOption
+        {
+            public string Label { get; init; } = "";
+            public PeripheralModel? Model { get; init; }
+            public override string ToString() => Label;
+        }
+
+        /// <summary>
+        /// Fills each capability dropdown (CIE-6391) with the available readers that serve it,
+        /// preceded by a "Default" entry (= MdocConfig.*Peripheral null). Auto-selects the
+        /// detected reader for that capability when one is present.
+        /// </summary>
+        private void PopulatePeripheralPickers(AllPeripheralStatus status)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                Fill(QrReaderCombo, status, PeripheralCapability.Qr);
+                Fill(NfcReaderCombo, status, PeripheralCapability.Nfc);
+                Fill(BleReaderCombo, status, PeripheralCapability.Ble);
+            });
+
+            static void Fill(ComboBox combo, AllPeripheralStatus status, PeripheralCapability capability)
+            {
+                combo.Items.Clear();
+                combo.Items.Add(new ReaderOption { Label = "Default (config)", Model = null });
+                foreach (var p in status.Available.Where(p => p.Serves(capability)))
+                    combo.Items.Add(new ReaderOption { Label = p.Model.ToString(), Model = p.Model });
+
+                // Auto-select the detected reader for this capability when there is one.
+                combo.SelectedIndex = combo.Items.Count > 1 ? 1 : 0;
+                combo.IsEnabled = true;
+            }
+        }
+
+        private static PeripheralModel? SelectedModel(ComboBox combo)
+            => (combo.SelectedItem as ReaderOption)?.Model;
         #endregion
 
         #region UI Event Handlers
@@ -554,6 +710,17 @@ namespace Tap2iDSampleWinUI
         {
             _isPcscReaderActivated = false;
             DisplayQrCodeDeviceEngagementFeature();
+
+            // CIE-6391: when a QR peripheral the SDK can capture from is selected (e.g. P35),
+            // start the verification now with an empty engagement string — the SDK opens that
+            // reader's scanner and captures the engagement itself. With QR = Default, the
+            // existing camera / manual-entry flow provides the engagement instead.
+            var qrModel = SelectedModel(QrReaderCombo);
+            if (qrModel != null)
+            {
+                AppendLogs($"Starting SDK QR capture on {qrModel} — present the wallet QR to the reader...");
+                ExecuteVerifyMdoc("", DeviceEngagementMode.QrCode);
+            }
         }
 
         private void DeviceEngagementStringInputTextChangenHandler(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs args)
