@@ -116,27 +116,24 @@
             </DataTemplate>
         </Grid.Resources>
 
+        <!-- Base = landscape: row0 = Controls | Results, row1 = Logs (full width), row2 unused.
+             The portrait/narrow layout (set in code) stacks all three into a single column. -->
         <Grid.RowDefinitions>
-            <!-- Bounded proportional rows so panels scroll instead of squishing.
-                 BottomRow is used only by the narrow/stacked layout. -->
             <RowDefinition x:Name="TopRow" Height="3*"/>
             <RowDefinition x:Name="MidRow" Height="2*"/>
             <RowDefinition x:Name="BottomRow" Height="0"/>
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
-            <!-- Cap the left column so it can't starve the results column on wide monitors;
-                 the results column keeps a usable minimum width. The narrow state collapses
-                 the right column and lets the left column fill the width. -->
-            <ColumnDefinition x:Name="LeftCol" Width="Auto" MinWidth="360" MaxWidth="600"/>
-            <ColumnDefinition x:Name="RightCol" Width="1*" MinWidth="340"/>
+            <ColumnDefinition x:Name="LeftCol" Width="2*" MinWidth="340"/>
+            <ColumnDefinition x:Name="RightCol" Width="3*" MinWidth="340"/>
         </Grid.ColumnDefinitions>
 
 
-        <!-- LEFT COLUMN -->
+        <!-- LEFT COLUMN — top box: controls -->
         <Grid x:Name="LeftPanel" Grid.Row="0" Grid.Column="0"
               HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-              Margin="10,10,0,0" BorderBrush="#1E534B" BorderThickness="2"
+              Margin="10,10,5,5" BorderBrush="#1E534B" BorderThickness="2"
               CornerRadius="9" Background="#D1E4E3">
 
           <!-- Scrolls the controls vertically on short screens; never scrolls horizontally. -->
@@ -284,21 +281,29 @@
           </ScrollViewer>
         </Grid>
 
-        <!-- RIGHT COLUMN: RESULTS (moves below the controls in the narrow layout) -->
-        <Grid x:Name="ResultsPanel" Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
-              BorderBrush="#1E534B" BorderThickness="2" CornerRadius="9" Margin="10,10,10,10">
+        <!-- RESULTS box (top-right beside controls in landscape; stacked in the middle in portrait) -->
+        <Grid x:Name="ResultsPanel" Grid.Row="0" Grid.Column="1"
+              BorderBrush="#1E534B" BorderThickness="2" CornerRadius="9" Margin="5,10,10,5">
 
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="10">
+            <Grid Grid.Row="0">
+                <TextBlock Text="Results" FontSize="32" FontWeight="Bold" FontFamily="Arial" Margin="20,10,0,10"/>
+            </Grid>
+
+            <Rectangle Grid.Row="1" Fill="#1E534B" Height="1"/>
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="10">
                 <ItemsControl x:Name="DocumentsListControl" ItemTemplate="{StaticResource DocumentTemplate}"/>
             </ScrollViewer>
         </Grid>
 
-        <!-- LOGS PANEL -->
-        <Grid x:Name="LogsPanel" Grid.Row="1" Grid.Column="0" Margin="10,10,10,10" BorderBrush="#1E534B" BorderThickness="2" CornerRadius="9">
+        <!-- LOGS box (full width below both in landscape; bottom of the stack in portrait) -->
+        <Grid x:Name="LogsPanel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="10,5,10,10" BorderBrush="#1E534B" BorderThickness="2" CornerRadius="9">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>

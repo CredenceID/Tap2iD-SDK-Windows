@@ -7,6 +7,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Tap2iDBluetoothCommon;
@@ -64,6 +65,9 @@ namespace Tap2iDSampleWinUI
             // Apply the preferred startup size on first activation (Resize in the constructor
             // runs before the window is shown and does not stick reliably).
             this.Activated += MainWindow_Activated;
+
+            // Enforce a minimum window size so the layout can't be squeezed into collisions.
+            InstallMinimumSizeGuard();
 
             _mainWindowViewModel = new MainWindowViewModel(this);
 
@@ -156,43 +160,93 @@ namespace Tap2iDSampleWinUI
         #endregion
 
         #region Adaptive Layout
-        // Reflow between side-by-side (wide) and stacked (narrow / portrait) layouts.
+        // Landscape (wide): Controls | Results on top, Logs full-width below.
+        // Portrait / narrow:  Controls, Results, Logs stacked in one column.
         // Driven from code because AdaptiveTrigger state triggers do not reliably evaluate
         // on a Window's root Grid in WinUI 3 desktop.
-        private const double WideLayoutThreshold = 1150;
+        private const double SideBySideMinWidth = 980;
         private bool _layoutInitialized = false;
-        private bool _isWideLayout = true;
+        private bool _isSideBySide = true;
 
         private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            bool wide = e.NewSize.Width >= WideLayoutThreshold;
-            if (_layoutInitialized && wide == _isWideLayout) return;
+            // Side by side only when the window is landscape-shaped and wide enough; otherwise stack.
+            bool sideBySide = e.NewSize.Width >= e.NewSize.Height && e.NewSize.Width >= SideBySideMinWidth;
+            if (_layoutInitialized && sideBySide == _isSideBySide) return;
             _layoutInitialized = true;
-            _isWideLayout = wide;
-            if (wide) ApplyWideLayout(); else ApplyNarrowLayout();
+            _isSideBySide = sideBySide;
+            if (sideBySide) ApplyLandscapeLayout(); else ApplyStackedLayout();
         }
 
-        private void ApplyWideLayout()
+        private void ApplyLandscapeLayout()
         {
-            RightCol.Width = new GridLength(1, GridUnitType.Star);
-            LeftCol.MinWidth = 360; LeftCol.MaxWidth = 600;
+            RightCol.MinWidth = 340;
+            RightCol.Width = new GridLength(3, GridUnitType.Star);
             TopRow.Height = new GridLength(3, GridUnitType.Star);
             MidRow.Height = new GridLength(2, GridUnitType.Star);
             BottomRow.Height = new GridLength(0);
-            Grid.SetRow(ResultsPanel, 0); Grid.SetColumn(ResultsPanel, 1); Grid.SetRowSpan(ResultsPanel, 3);
-            Grid.SetRow(LogsPanel, 1); Grid.SetColumn(LogsPanel, 0);
+            // Controls top-left, Results top-right, Logs full-width below.
+            Grid.SetRow(LeftPanel, 0); Grid.SetColumn(LeftPanel, 0);
+            Grid.SetRow(ResultsPanel, 0); Grid.SetColumn(ResultsPanel, 1); Grid.SetColumnSpan(ResultsPanel, 1);
+            Grid.SetRow(LogsPanel, 1); Grid.SetColumn(LogsPanel, 0); Grid.SetColumnSpan(LogsPanel, 2);
         }
 
-        private void ApplyNarrowLayout()
+        private void ApplyStackedLayout()
         {
-            // Single column: controls (sized to content), then results, then logs.
+            // Collapse the right column; stack Controls, Results, Logs vertically.
+            // MinWidth must also go to 0 — it would otherwise override Width and leave a gap.
+            RightCol.MinWidth = 0;
             RightCol.Width = new GridLength(0);
-            LeftCol.MinWidth = 0; LeftCol.MaxWidth = double.PositiveInfinity;
             TopRow.Height = GridLength.Auto;
-            MidRow.Height = new GridLength(3, GridUnitType.Star);
-            BottomRow.Height = new GridLength(2, GridUnitType.Star);
-            Grid.SetRow(ResultsPanel, 1); Grid.SetColumn(ResultsPanel, 0); Grid.SetRowSpan(ResultsPanel, 1);
-            Grid.SetRow(LogsPanel, 2); Grid.SetColumn(LogsPanel, 0);
+            MidRow.Height = new GridLength(1, GridUnitType.Star);
+            BottomRow.Height = new GridLength(1, GridUnitType.Star);
+            Grid.SetRow(LeftPanel, 0); Grid.SetColumn(LeftPanel, 0);
+            Grid.SetRow(ResultsPanel, 1); Grid.SetColumn(ResultsPanel, 0); Grid.SetColumnSpan(ResultsPanel, 1);
+            Grid.SetRow(LogsPanel, 2); Grid.SetColumn(LogsPanel, 0); Grid.SetColumnSpan(LogsPanel, 1);
+        }
+        #endregion
+
+        #region Minimum Window Size
+        // WinApp SDK 1.5 has no OverlappedPresenter min-size API, so enforce it by
+        // intercepting WM_GETMINMAXINFO on the window procedure.
+        private const int MinWidthDip = 820;
+        private const int MinHeightDip = 640;
+        private const int WM_GETMINMAXINFO = 0x0024;
+        private const int GWLP_WNDPROC = -4;
+        private WndProc? _newWndProc;   // kept alive to avoid GC of the delegate
+        private IntPtr _oldWndProc;
+
+        private delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [StructLayout(LayoutKind.Sequential)] private struct POINT { public int X; public int Y; }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MINMAXINFO { public POINT r, maxSize, maxPos, minTrack, maxTrack; }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, WndProc newProc);
+        [DllImport("user32.dll")]
+        private static extern IntPtr CallWindowProc(IntPtr prevWndProc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+        private void InstallMinimumSizeGuard()
+        {
+            var hwnd = WindowNative.GetWindowHandle(this);
+            _newWndProc = MinSizeWndProc;
+            _oldWndProc = SetWindowLongPtr(hwnd, GWLP_WNDPROC, _newWndProc);
+        }
+
+        private IntPtr MinSizeWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            if (msg == WM_GETMINMAXINFO)
+            {
+                double scale = GetDpiForWindow(hWnd) / 96.0;
+                var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+                mmi.minTrack.X = (int)(MinWidthDip * scale);
+                mmi.minTrack.Y = (int)(MinHeightDip * scale);
+                Marshal.StructureToPtr(mmi, lParam, false);
+            }
+            return CallWindowProc(_oldWndProc, hWnd, msg, wParam, lParam);
         }
         #endregion
 
