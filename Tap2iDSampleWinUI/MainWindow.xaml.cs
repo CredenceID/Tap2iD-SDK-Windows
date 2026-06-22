@@ -94,8 +94,11 @@ namespace Tap2iDSampleWinUI
             this.Title += $" - v{GetAppVersion()}";
 
             // Initialise HID Scanner
+            // NOTE (CIE-6391): the SDK now owns the HID ATOM camera (Access-IS VideoOCR) for
+            // QR capture, so the app no longer initialises it here — doing so would register a
+            // competing barcode callback on the shared VideoOCR engine and steal the scan from
+            // the SDK. The TCP barcode server below is unrelated (external HID-wedge input).
             videoOCR = new ViewModel(this);
-            videoOCR.initialiseReader();
             videoOCR.StartBarcodeServer((dataRead) =>
             {
                 DispatcherQueue.TryEnqueue(() =>
@@ -399,18 +402,11 @@ namespace Tap2iDSampleWinUI
 
         private void VerifyAndInitializePcscReader()
         {
-            videoOCR.startReader();
-            string hidReaderSerialNumber = videoOCR.getUnitSerialNumber();
-            if ((hidReaderSerialNumber != null) && (hidReaderSerialNumber.Length > 0))
-            {
-                AppendLogs($"HID reader available. Serial Number: {hidReaderSerialNumber}");
-                _isPcscHidReaderAvailable = true;
-            }
-            else
-            {
-                AppendLogs($"No HID reader found.");
-                _isPcscHidReaderAvailable = false;
-            }
+            // CIE-6391: HID ATOM hardware is now discovered and driven by the SDK
+            // (CheckAllPeripheralStatusAsync + per-capability selection), so the app no
+            // longer starts the Access-IS camera here — that would claim the shared VideoOCR
+            // engine and conflict with the SDK's QR capture.
+            _isPcscHidReaderAvailable = false;
             UpdatePcscReaderName();
         }
 
