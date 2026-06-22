@@ -310,10 +310,9 @@ namespace Tap2iDSampleWinUI
                 ProgressRing.IsActive = false;
                 ProgressPanel.Visibility = Visibility.Collapsed;
                 _semaphore.Release();
-                if (deviceEngagementMode == DeviceEngagementMode.NFC)
-                {
-                    ActivateDeviceEngagementOptions();
-                }
+                // Reset both engagement buttons (QR and NFC) once the transaction finishes —
+                // success or failure — so the next transaction can be started immediately.
+                ActivateDeviceEngagementOptions();
             }
         }
 
