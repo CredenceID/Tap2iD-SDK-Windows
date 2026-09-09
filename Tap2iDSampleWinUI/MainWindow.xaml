@@ -217,7 +217,8 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="DeviceEngagementStringInputTextBox" Grid.Column="0" TextChanged="DeviceEngagementStringInputTextChangenHandler"
-                             Width="380" Height="80" BorderBrush="#1E534B" PlaceholderText="Device Engagement Data..." FontSize="16" CornerRadius="9" Margin="20,0,0,30"/>
+                             Width="380" Height="80" BorderBrush="#1E534B" PlaceholderText="QR Code Device Engagement or PDF417 DL..." FontSize="16" CornerRadius="9" Margin="20,0,0,30"
+                             AcceptsReturn="True" TextWrapping="Wrap"/>
                     <Button x:Name="ClearEngagementStringButton" Grid.Column="1" Click="ClearEngagementStringButton_Click" Content="Clear"
                             Width="150" Height="80" BorderThickness="2" BorderBrush="#1E534B" Background="White" Foreground="#1E534B" FontSize="16" CornerRadius="9" Margin="10,0,0,30"/>
                     <Button x:Name="CameraButton" Grid.Column="2" Click="ScanQRCodeButton_Click" Width="150" Height="80" Background="#1E534B" CornerRadius="9" Margin="10,0,0,30">
@@ -251,7 +252,89 @@
             </Grid.RowDefinitions>
 
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="10">
-                <ItemsControl x:Name="DocumentsListControl" ItemTemplate="{StaticResource DocumentTemplate}"/>
+                <StackPanel>
+                    <ItemsControl x:Name="DocumentsListControl" ItemTemplate="{StaticResource DocumentTemplate}"/>
+
+                    <!-- PDF417 Barcode Verification Result -->
+                    <Border x:Name="Pdf417ResultPanel" BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                            Margin="0,0,0,20" Padding="15" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Title + Verdict badge + Expiry badge (expiry is independent of the
+                                 REAL/FAKE verdict — an authentic but expired card is still REAL,
+                                 so both badges show side by side rather than merging). -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="PDF417 Barcode Verification" FontSize="20" FontWeight="Bold" Foreground="#1E534B"/>
+                                <Border x:Name="Pdf417ExpiryBadge" Grid.Column="1" CornerRadius="8" Padding="12,4"
+                                        Background="#B22222" Margin="0,0,8,0" Visibility="Collapsed">
+                                    <TextBlock Text="⚠ Expired" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                                <Border x:Name="Pdf417VerdictBadge" Grid.Column="2" CornerRadius="8" Padding="12,4" Background="Gray">
+                                    <TextBlock x:Name="Pdf417VerdictText" FontSize="18" FontWeight="Bold" Foreground="White" Text="—"/>
+                                </Border>
+                            </Grid>
+
+                            <Rectangle Grid.Row="1" Height="1" Fill="LightGray" Margin="0,10"/>
+
+                            <!-- Summary: Confidence, State, Authority Check (one card -> at most one
+                                 jurisdiction crypto check; result.Crypto.Authority tells you which). -->
+                            <Grid Grid.Row="2" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Confidence" FontWeight="Bold"/>
+                                    <TextBlock x:Name="Pdf417ConfidenceText" Text="—"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="State" FontWeight="Bold"/>
+                                    <TextBlock x:Name="Pdf417StateText" Text="—"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Authority Check" FontWeight="Bold"/>
+                                    <TextBlock x:Name="Pdf417CryptoText" Text="—"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Parsed fields list -->
+                            <ItemsControl x:Name="Pdf417FieldsControl" Grid.Row="3">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:DisplayItem">
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Bold" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Validation errors (hidden when none) -->
+                            <StackPanel x:Name="Pdf417ErrorsContainer" Grid.Row="4" Visibility="Collapsed" Margin="0,10,0,0">
+                                <Rectangle Height="1" Fill="LightGray" Margin="0,0,0,10"/>
+                                <TextBlock Text="Validation Errors" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="Pdf417ErrorsText" TextWrapping="Wrap" Foreground="#B22222"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
             </ScrollViewer>
         </Grid>
 

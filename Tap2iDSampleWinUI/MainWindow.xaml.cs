@@ -6,12 +6,14 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Tap2iDSampleWinUI.ViewModels;
 using Tap2iDSdk;
 using Tap2iDSdk.Extension;
 using Tap2iDSdk.Model;
+using Tap2iDSdk.Model.Pdf417;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -91,7 +93,10 @@ namespace Tap2iDSampleWinUI
                 DispatcherQueue.TryEnqueue(() =>
                 {
                     DeviceEngagementStringInputTextBox.Text = dataRead;
-                    ExecuteVerifyMdoc(dataRead, DeviceEngagementMode.QrCode);
+                    if (dataRead.StartsWith("@", StringComparison.Ordinal))
+                        ExecuteVerifyPdf417Async(dataRead);
+                    else
+                        ExecuteVerifyMdoc(dataRead, DeviceEngagementMode.QrCode);
                 });
 
             }
@@ -122,7 +127,11 @@ namespace Tap2iDSampleWinUI
         #region NFC and QR Code Handling
         void QrCodeScanned_ExecuteVerifyMdoc(object sender, QrCodeReadEventArgs qrCodeReadEventArgs)
         {
-            ExecuteVerifyMdoc(qrCodeReadEventArgs.QrCodeValue, DeviceEngagementMode.QrCode);
+            var value = qrCodeReadEventArgs.QrCodeValue;
+            if (value.StartsWith("@", StringComparison.Ordinal))
+                ExecuteVerifyPdf417Async(value);
+            else
+                ExecuteVerifyMdoc(value, DeviceEngagementMode.QrCode);
         }
         private void StartNfcDeviceEngagement()
         {
@@ -181,6 +190,110 @@ namespace Tap2iDSampleWinUI
                     ActivateDeviceEngagementOptions();
                 }
             }
+        }
+
+        private async void ExecuteVerifyPdf417Async(string pdf417Data)
+        {
+            if (!await _semaphore.WaitAsync(0))
+            {
+                AppendLogs("An operation is currently running, please wait...");
+                return;
+            }
+
+            try
+            {
+                AppendLogs("Start PDF417 barcode verification...");
+                ProgressRing.IsActive = true;
+                ProgressPanel.Visibility = Visibility.Visible;
+
+                var result = await tap2idVerifier.VerifyPdf417Async(new Pdf417VerificationRequest(pdf417Data));
+                AppendLogs($"PDF417 result: {result.Verdict} (confidence: {result.ConfidenceLevel}%)");
+                if (result.Errors?.Count > 0)
+                    AppendLogs($"PDF417 errors: {string.Join(", ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+                DisplayPdf417Result(result);
+            }
+            catch (Pdf417ImplException ex)
+            {
+                AppendLogs($"PDF417 SDK error: [{ex.Error}] {ex.Message}");
+                DispatcherQueue.TryEnqueue(() => ShowError($"PDF417 error: {ex.Message}"));
+            }
+            catch (Exception ex)
+            {
+                DispatcherQueue.TryEnqueue(() => ShowError(ex.Message));
+            }
+            finally
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ProgressRing.IsActive = false;
+                    ProgressPanel.Visibility = Visibility.Collapsed;
+                });
+                _semaphore.Release();
+            }
+        }
+
+        private void DisplayPdf417Result(Pdf417VerificationResult result)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                // Verdict badge colour
+                var (badgeColor, verdictLabel) = result.Verdict switch
+                {
+                    Pdf417Verdict.Real => (Windows.UI.Color.FromArgb(0xff, 0x1e, 0x53, 0x4b), "REAL"),
+                    Pdf417Verdict.Fake => (Windows.UI.Color.FromArgb(0xff, 0xb2, 0x22, 0x22), "FAKE"),
+                    Pdf417Verdict.Suspicious => (Windows.UI.Color.FromArgb(0xff, 0xff, 0x8c, 0x00), "SUSPICIOUS"),
+                    Pdf417Verdict.Error => (Windows.UI.Color.FromArgb(0xff, 0x80, 0x80, 0x80), "ERROR"),
+                    _ => (Windows.UI.Color.FromArgb(0xff, 0x80, 0x80, 0x80), "ERROR"),
+                };
+                Pdf417VerdictBadge.Background = new SolidColorBrush(badgeColor);
+                Pdf417VerdictText.Text = verdictLabel;
+
+                // Expiry attestation — independent of the REAL/FAKE verdict (an authentic but
+                // expired card is still REAL), so shown as a separate badge. Attestations is
+                // always non-null; DocumentExpired is only true when the active profile requests
+                // the expiry date and the card is past it.
+                Pdf417ExpiryBadge.Visibility = result.Attestations.DocumentExpired
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+                // Summary
+                Pdf417ConfidenceText.Text = $"{result.ConfidenceLevel}%";
+                Pdf417StateText.Text = result.StateCode ?? "—";
+
+                // Authority crypto check — one card has at most one jurisdiction check;
+                // result.Crypto.Authority tells you which (CaDmv / NyDmv / VaDmv / ...).
+                Pdf417CryptoText.Text = result.Crypto is { Checked: true } crypto
+                    ? $"{crypto.Authority}: {(crypto.Verified ? "✓ Verified" : "✗ Failed")}"
+                    : "No crypto check";
+
+                // Key parsed fields
+                var displayFields = new[] { "given_name", "family_name", "birth_date", "expiry_date", "issue_date", "document_number", "issuing_jurisdiction", "resident_city", "resident_state" };
+                var items = displayFields
+                    .Where(k => result.Fields.TryGetValue(k, out var v) && v != null)
+                    .Select(k => new DisplayItem(ViewModels.DocumentViewModel.PrettifyLabel(k) + ":", result.Fields[k].ToString()))
+                    .ToList();
+                Pdf417FieldsControl.ItemsSource = items;
+
+                // Validation errors — also show container when Verdict==Error with no error list
+                if (result.Errors?.Count > 0)
+                {
+                    Pdf417ErrorsText.Text = string.Join(Environment.NewLine,
+                        result.Errors.Select(e => $"[{e.Code}] {e.Message}"));
+                    Pdf417ErrorsContainer.Visibility = Visibility.Visible;
+                }
+                else if (result.Verdict == Pdf417Verdict.Error)
+                {
+                    Pdf417ErrorsText.Text = "Verification could not be completed. The barcode may be blank, unreadable, or not in AAMVA PDF417 format.";
+                    Pdf417ErrorsContainer.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    Pdf417ErrorsContainer.Visibility = Visibility.Collapsed;
+                }
+
+                Pdf417ResultPanel.Visibility = Visibility.Visible;
+                ShowResults();
+            });
         }
 
         private async void HandleVerificationResult(Tap2iDResult tap2IdResult, MdocConfig mdocConfig)
@@ -289,6 +402,9 @@ namespace Tap2iDSampleWinUI
         private void ClearResultsFields()
         {
             DocumentsListControl.ItemsSource = null;
+            Pdf417ResultPanel.Visibility = Visibility.Collapsed;
+            Pdf417FieldsControl.ItemsSource = null;
+            Pdf417ErrorsContainer.Visibility = Visibility.Collapsed;
         }
 
         private void ClearEngagementFields()
@@ -405,7 +521,7 @@ namespace Tap2iDSampleWinUI
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                DeviceEngagementTitle.Text = "QRCode Device Engagement";
+                DeviceEngagementTitle.Text = "QR Code Device Engagement / PDF417 DL";
                 CameraCommandsPanel.Visibility = Visibility.Visible;
                 DeviceEngagementStringInputTextBox.IsFocusEngaged = false;
                 NfcCommandsPanel.Visibility = Visibility.Collapsed;
@@ -558,13 +674,22 @@ namespace Tap2iDSampleWinUI
 
         private void DeviceEngagementStringInputTextChangenHandler(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs args)
         {
-            if (DeviceEngagementStringInputTextBox.Text.Length > 0)
+            var text = DeviceEngagementStringInputTextBox.Text;
+            if (text.Length > 0 && (text.Contains("\r") || text.Contains("\n")))
             {
-                if (DeviceEngagementStringInputTextBox.Text.Contains("\r"))
+                if (text.StartsWith("@", StringComparison.Ordinal))
                 {
-                    DeviceEngagementStringInputTextBox.Text = DeviceEngagementStringInputTextBox.Text.Substring(0, DeviceEngagementStringInputTextBox.Text.IndexOf("\r"));
-                    ExecuteVerifyMdoc(DeviceEngagementStringInputTextBox.Text, DeviceEngagementMode.QrCode);
+                    // PDF417: save original data (with separators) before flattening for display.
+                    var pdf417Data = text;
+                    DeviceEngagementStringInputTextBox.Text = text.Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ");
+                    ExecuteVerifyPdf417Async(pdf417Data);
+                    return;
                 }
+
+                // QR code device engagement: strip the trailing \r or \n scanners append, then verify.
+                int termIdx = text.IndexOf("\r") >= 0 ? text.IndexOf("\r") : text.IndexOf("\n");
+                DeviceEngagementStringInputTextBox.Text = text.Substring(0, termIdx);
+                ExecuteVerifyMdoc(DeviceEngagementStringInputTextBox.Text, DeviceEngagementMode.QrCode);
             }
         }
 

@@ -139,7 +139,7 @@ namespace Tap2iDSampleWinUI.ViewModels
             return docType;
         }
 
-        private static string PrettifyLabel(string propertyName)
+        internal static string PrettifyLabel(string propertyName)
         {
             if (propertyName.StartsWith("dhs", StringComparison.OrdinalIgnoreCase))
                 return "DHS " + propertyName.Substring(3);

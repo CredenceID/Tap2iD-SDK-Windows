@@ -43,7 +43,7 @@ namespace Tap2iDSampleWinUI
             {
                 //AutoRotate = true;
             };
-            _reader.Options.PossibleFormats = new[] { BarcodeFormat.QR_CODE };
+            _reader.Options.PossibleFormats = new[] { BarcodeFormat.QR_CODE, BarcodeFormat.PDF_417 };
             _reader.Options.TryHarder = true;
 
             this.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(300, 300, 600, 600));
