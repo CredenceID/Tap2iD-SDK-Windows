@@ -364,3 +364,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Local SDK package version override (see Directory.Build.props)
+Directory.Build.local.props

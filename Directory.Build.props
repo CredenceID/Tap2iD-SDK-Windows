@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Tap2iD SDK package versions used by the sample. The defaults are official releases on the
+    Credence ID Nexus feed (tap2id-sdk-nuget). To test a locally packed SDK, create
+    Directory.Build.local.props next to this file (it is git-ignored) and override them, e.g.
+
+      <Project>
+        <PropertyGroup>
+          <Tap2iDSdkVersion>2.3.0-mybuild</Tap2iDSdkVersion>
+          <Tap2iDHidAtomVersion>1.1.0-mybuild</Tap2iDHidAtomVersion>
+        </PropertyGroup>
+      </Project>
+
+    together with a NuGet source that serves those packages.
+  -->
+  <PropertyGroup>
+    <Tap2iDSdkVersion>2.3.0-RC04</Tap2iDSdkVersion>
+    <Tap2iDHidAtomVersion>1.1.0-RC01</Tap2iDHidAtomVersion>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+</Project>
