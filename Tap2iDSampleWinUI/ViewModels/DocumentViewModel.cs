@@ -19,7 +19,7 @@ namespace Tap2iDSampleWinUI.ViewModels
         public bool HasProfileImage => ProfileImage != null;
         public ImageSource SignatureImage { get; set; }
         public bool HasSignatureImage => SignatureImage != null;
-        public bool? IsAgeOver21 { get; set; }
+        public bool IsAgeOver21 { get; set; }
         public SolidColorBrush AgeBadgeColor { get; set; } = new SolidColorBrush(Microsoft.UI.Colors.Gray);
         public List<DisplayItem> Attributes { get; set; } = new List<DisplayItem>();
 
@@ -29,6 +29,12 @@ namespace Tap2iDSampleWinUI.ViewModels
         public bool IssuerSigned { get; set; }
         public bool IssuerTrusted { get; set; }
         public string IssuerName { get; set; }
+
+        // Validation errors (e.g. error 314 — expired issuer certificate).
+        // These are returned by the SDK inside a successful result (ResultError == OK)
+        // so they would otherwise be silently swallowed by the UI.
+        public List<string> ValidationErrors { get; set; } = new();
+        public bool HasValidationErrors => ValidationErrors.Count > 0;
 
         public static async Task<DocumentViewModel> FromVerifiedDocumentAsync(VerifiedDocument doc)
         {
@@ -41,6 +47,9 @@ namespace Tap2iDSampleWinUI.ViewModels
             vm.IssuerSigned = doc.Authentication.SecurityChecks.IsIssuerSignedValid;
             vm.IssuerTrusted = doc.Authentication.TrustAttributes.IsIssuerTrusted;
             vm.IssuerName = doc.Authentication.TrustAttributes.IssuerDistinguishedName; // Or parsed field
+            vm.ValidationErrors = doc.Authentication.ValidationErrors
+                .Select(e => e.Message)
+                .ToList();
 
             // 2. Parse Attributes & Find Image
             var displayItems = new List<DisplayItem>();

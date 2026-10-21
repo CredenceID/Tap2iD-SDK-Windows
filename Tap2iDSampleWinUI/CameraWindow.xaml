@@ -9,13 +9,13 @@
     mc:Ignorable="d"
     Title="Camera"
     >
-    <Grid 
+    <Grid
     Grid.Row="0" Grid.Column="0"
     HorizontalAlignment="Stretch"
     VerticalAlignment="Stretch">
 
         <!-- MediaPlayerElement (Camera) -->
-        <StackPanel 
+        <StackPanel
             x:Name="CameraPanel"
             Grid.Row="0"
             HorizontalAlignment="Center"
@@ -25,6 +25,27 @@
                     x:Name="player"
                     AutoPlay="True" />
         </StackPanel>
+
+        <!-- Shown when no camera could be opened; the reason is in the main window's logs -->
+        <TextBlock x:Name="StatusText"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="Collapsed" />
+
+        <!-- Flip camera button, bottom-right; shown only when more than one camera exists -->
+        <Button x:Name="FlipCameraButton"
+                Click="FlipCameraButton_Click"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,16,16"
+                Width="52" Height="52"
+                CornerRadius="26"
+                Background="#CC1E534B"
+                BorderThickness="0"
+                Visibility="Collapsed"
+                ToolTipService.ToolTip="Switch camera">
+            <FontIcon Glyph="&#xE892;" FontSize="22" Foreground="White"/>
+        </Button>
 
     </Grid>
 </Window>
