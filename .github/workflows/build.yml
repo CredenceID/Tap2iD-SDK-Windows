@@ -1,0 +1,29 @@
+name: Build
+
+# Compiles the sample on a clean Windows runner. Restore uses nuget.config only:
+# the Credence ID feed for the Tap2iD SDK (anonymous read) and nuget.org.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build (${{ matrix.configuration }}, x64)
+        run: dotnet build Tap2iDSampleWinUI/Tap2iDSampleWinUI.csproj -c ${{ matrix.configuration }} -p:Platform=x64
