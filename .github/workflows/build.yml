@@ -25,5 +25,32 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      # The SDK's Java part (com.credenceid:c-identity) is resolved by IKVM from the
+      # Credence ID Maven repository at build time: the same settings.xml the
+      # Integration Guide (Step 1) asks developers to add. Anonymous read.
+      - name: Add the Credence ID Maven repository
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:USERPROFILE\.m2" | Out-Null
+          @'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+            <profiles>
+              <profile>
+                <id>nexus</id>
+                <repositories>
+                  <repository>
+                    <id>nexus</id>
+                    <name>Nexus Repository</name>
+                    <url>https://nexus.credenceid.com/repository/credenceid-sdk-group</url>
+                  </repository>
+                </repositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>nexus</activeProfile>
+            </activeProfiles>
+          </settings>
+          '@ | Set-Content -Encoding utf8 "$env:USERPROFILE\.m2\settings.xml"
+
       - name: Build (${{ matrix.configuration }}, x64)
         run: dotnet build Tap2iDSampleWinUI/Tap2iDSampleWinUI.csproj -c ${{ matrix.configuration }} -p:Platform=x64
