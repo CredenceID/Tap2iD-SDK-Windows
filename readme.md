@@ -23,7 +23,8 @@ Available for Android, iOS, and Windows desktop, the SDK allows seamless integra
 ## Requirements
 - Windows 11 (build 22000) or later. Windows 10 is not supported from SDK 2.3.0.
 - Visual Studio 2022 with the .NET 8 SDK and the Windows App SDK (WinUI 3) workload.
-- The Tap2iD NuGet feed added as a package source: see the [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Integrate-Tap2iD-Windows-SDK). Apps target `net8.0-windows10.0.22000.0` with `<WindowsSdkPackageVersion>10.0.22000.57</WindowsSdkPackageVersion>`.
+- The Credence ID Maven repository in your Maven `settings.xml` (`%USERPROFILE%\.m2\settings.xml`): the SDK's Java components are downloaded from it at build time. See Step 1 of the [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Windows/wiki/Guide-to-Integrate-Tap2iD-Windows-SDK).
+- The Tap2iD NuGet feed: already set in this repository's `nuget.config`. In your own app, add it as described in Step 2 of the Integration Guide. Apps target `net8.0-windows10.0.22000.0` with `<WindowsSdkPackageVersion>10.0.22000.57</WindowsSdkPackageVersion>`.
 
 ## Running the sample
 1. Open `Tap2iDSampleWinUI.sln` and select the x64 platform.
