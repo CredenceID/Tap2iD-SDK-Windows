@@ -32,7 +32,9 @@ namespace Tap2iDSampleWinUI.BarcodeServer
 
                         while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                         {
-                            message.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                            // Latin1, not ASCII: ASCII turns every byte >= 0x80 into '?' and
+                            // corrupts raw AAMVA signature blocks (e.g. VA's ZVA) (CIE-6730).
+                            message.Append(Encoding.Latin1.GetString(buffer, 0, bytesRead));
                         }
 
                         Console.WriteLine(message.ToString());

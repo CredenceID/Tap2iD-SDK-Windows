@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-    <WindowsSdkPackageVersion>10.0.19041.57</WindowsSdkPackageVersion>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <TargetFramework>net8.0-windows10.0.22000.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
+    <WindowsSdkPackageVersion>10.0.22000.57</WindowsSdkPackageVersion>
     <RootNamespace>Tap2iDSampleWinUI</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
@@ -14,17 +14,17 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <StartupObject>Tap2iDSampleWinUI.Program</StartupObject>
     <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
-    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-    <PackageCertificateThumbprint>64DC3C8B39B7773AEF2135E6FFCF7CF7C5CC7F08</PackageCertificateThumbprint>
-    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <!-- Build-time signing is off: a local build produces an unsigned .msix, which runs
+         from Visual Studio (F5) in Developer Mode. To install the package on another PC,
+         sign it with your own certificate (see Package.appxmanifest for the Publisher). -->
+    <AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
     <AppxBundle>Never</AppxBundle>
     <AppInstallerUri>C:\Program Files\WindowsApps\Tap2iDSampleWinUI\</AppInstallerUri>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
-    <PackageCertificateKeyFile>Tap2iDSampleWinUI_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <AssemblyVersion>2.9.0.0</AssemblyVersion>
+    <AssemblyVersion>2.9.28.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="CameraWindow.xaml" />
@@ -44,13 +44,15 @@
 
   <ItemGroup>
 
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
 
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.9.1" />
-
-
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
-    <PackageReference Include="Tap2iDSdk" Version="2.2.0" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.10" />
+    <PackageReference Include="Tap2iDSdk" Version="2.3.0" />
+    <PackageReference Include="Tap2iDSdk.HidAtom" Version="1.1.0" />
 
     <PackageReference Include="ZXing.Net" Version="0.16.9" />
     <Manifest Include="$(ApplicationManifest)" />
@@ -67,8 +69,9 @@
   <ItemGroup>
     <Folder Include="NewFolder\" />
   </ItemGroup>
+
   <ItemGroup>
-    <None Update="AccessISBarcode.dll">
+    <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Page Update="SettingsDialog.xaml">
@@ -77,9 +80,9 @@
     <Page Update="CameraWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <None Update="VideoOCR.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Page Update="Views\ReaderSelectionView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="ResourceControl.xaml">
